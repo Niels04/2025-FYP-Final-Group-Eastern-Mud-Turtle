@@ -17,77 +17,149 @@ from statistics import variance, stdev
 from scipy.spatial import ConvexHull
 
 
-def measure_pigment_network(image):
+def measure_pigment_network(image) -> int:
+    """Computes the percentage of the (BGR) image that constitutes the foreground.
+    
+    :param image: The image to be analysed
+    :return: The % of the foreground in the image
+    
+    """
 
+    # convert image from BGR to LAB
     lab_image = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+
+    # extract lightness value from image,
+    # cv2.split() divides the image into
+    # its color channels
     l_channel, _, _ = cv2.split(lab_image)
 
+    # increase contrast to better separate background and foreground
     enhanced_l_channel = cv2.equalizeHist(l_channel)
+
+    # separate background (set pixels to 0) from
+    # foreground (set pixels to 255). 
+    # THRESH_OTSU computes the best threshold to do so
     _, binary_mask = cv2.threshold(enhanced_l_channel, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
+    # compute total number of pixels in the image
     total_pixels = np.prod(binary_mask.shape[:2])
+
+    # count number of pixels in the lesion
     pigment_pixels = np.count_nonzero(binary_mask)
+
+    # compute % of pixels in the lesion region
     coverage_percentage = (pigment_pixels / total_pixels) * 100
 
     return coverage_percentage
 
 
-def measure_blue_veil(image):
+def measure_blue_veil(image) -> int:
+    """Computes the number of blue-ish pixels in the given (BGR) image.
     
+    :param image: The image to be analysed
+    :return: integer representing the number of blue-ish pixels
+    
+    """
+
+    # extract image dimensions
     height, width, _ = image.shape
+
+    # initialize counter for number of blue veils
     count = 0
 
+    # iterate through all the pixels in the image
     for y in range(height):
         for x in range(width):
+
+            # extract color values from image
             b, g, r = image[y, x]
 
+            # update counter if the pixel is teal, blue, purple
             if b > 60 and (r - 46 < g) and (g < r + 15):
                 count += 1
 
     return count
 
 
-def measure_vascular(image):
+def measure_vascular(image) -> int:
+    """Computes the number of pixels that identify blood or veins in the given (RGB) image.
+    DO NOT USE (weird choices)
+
+    :param image: The image to be analysed
+    :return: The number of pixels that identify blood or veins."""
     
+    # extract the red channel of the image
     red_channel = image[:, :, 0]
+
+    # enhance the red channel (doesn't do anything as of now)
     enhanced_red_channel = exposure.adjust_gamma(red_channel, gamma=1)
+
+    # copy the image and apply the enhanced red channel
     enhanced_image = image.copy()
     enhanced_image[:, :, 0] = enhanced_red_channel
+
+    # convert image to hsv
     hsv_img = color.rgb2hsv(enhanced_image)
 
+    # set hsv thresholds to find pixels of certain colors
     lower_red1 = np.array([0, 40/100, 00/100])
     upper_red1 = np.array([25/360, 1, 1])
     mask1 = np.logical_and(np.all(hsv_img >= lower_red1, axis=-1), np.all(hsv_img <= upper_red1, axis=-1))
 
+    # repeat, for different shades and tones
     lower_red2 = np.array([330/360, 40/100, 00/100])  
     upper_red2 = np.array([1, 1, 1]) 
     mask2 = np.logical_and(np.all(hsv_img >= lower_red2, axis=-1), np.all(hsv_img <= upper_red2, axis=-1))
 
+    # combine the two masks
     mask = np.logical_or(mask1, mask2)
 
+    # return the number of pixels present in the mask
     return np.sum(mask)
 
 
-def measure_globules(image):
+def measure_globules(image) -> int:
+    """Computes the number of blobs in the given (RGB) image.
     
+    :param image: The image to be analysed
+    :return: The number of blobs in the image
+
+    """
+
+    # convert to grayscale, then save the inverted image
     image_gray = rgb2gray(image)
     inverted_image = 1 - image_gray
 
+    # find blobs, then estimate radius by multiplying associated sigma with sqrt(2)
     blobs_doh = blob_log(inverted_image, min_sigma=1, max_sigma=4, num_sigma=50, threshold=.05)
     blobs_doh[:, 2] = blobs_doh[:, 2] * sqrt(2)
+
+    # compute number of blobs
     blob_amount = len(blobs_doh)
 
     return blob_amount
 
+def measure_streaks(image) -> int:
+    """Computes the irregularity of the lesion in the given (BGR) image.
+    
+    :param image: The image to be analysed
+    :return: The irregularity score of the lesion
 
-def measure_streaks(image):
-   
+    """
+   # get grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # compute threshold, using 11 neighbors
     thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
+    # find the contours of the thresholded image
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    # compute area and perimeter of the contours
     lesion_area = cv2.contourArea(contours[0])
     border_perimeter = cv2.arcLength(contours[0], True)
+
+    # finally evaluate irregularity
     if lesion_area == 0:
         irregularity = 0
     else:
@@ -97,23 +169,35 @@ def measure_streaks(image):
 
 
 def measure_irregular_pigmentation(image):
+    """Requires BGR images. God knows what use could this mess have. DO NOT USE for now.
     
+    :param image: The image to be analysed(?)
+    :return: Nothing useful, and definitely not what the name suggests."""
+    
+    # get grayscale image and find threshold. Apply mask
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     threshold = threshold_otsu(gray)
     binary = gray > threshold
+
+    # label connected foreground components
     labeled_image = label(binary)
 
     min_rows, min_cols, max_rows, max_cols = [], [], [], []
 
+    # iterate through connected components
     for region in regionprops(labeled_image):
+
+        # store area and perimeter
         area = region.area
         perimeter = region.perimeter
 
         if perimeter == 0:
             continue
-
+        
+        # compute circularity of the region
         circularity = 4 * np.pi * (area / (perimeter ** 2))
-
+        
+        # save bbox sides if condition is met
         if circularity < 0.6:
             min_row, min_col, max_row, max_col = region.bbox
             min_rows.append(min_row)
@@ -121,6 +205,9 @@ def measure_irregular_pigmentation(image):
             max_rows.append(max_row)
             max_cols.append(max_col)
 
+    # for some reason, compute the percentage of the image that is occupied by
+    # the lesion and return absolutely nothing else, leaving zero trace of all
+    # previous computations
     _, binary_mask = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     total_pixels = np.prod(binary_mask.shape[:2])
     irregular_pixels = np.count_nonzero(binary_mask)
