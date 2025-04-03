@@ -20,7 +20,7 @@ from scipy.spatial import ConvexHull
 def measure_pigment_network(image) -> int:
     """Computes the percentage of the (BGR) image that constitutes the foreground.
     
-    :param image: The image to be analysed
+    :param image: The BGR image to be analysed
     :return: The % of the foreground in the image
     
     """
@@ -56,7 +56,7 @@ def measure_pigment_network(image) -> int:
 def measure_blue_veil(image) -> int:
     """Computes the number of blue-ish pixels in the given (BGR) image.
     
-    :param image: The image to be analysed
+    :param image: The BGR image to be analysed
     :return: integer representing the number of blue-ish pixels
     
     """
@@ -85,7 +85,7 @@ def measure_vascular(image) -> int:
     """Computes the number of pixels that identify blood or veins in the given (RGB) image.
     DO NOT USE (weird choices)
 
-    :param image: The image to be analysed
+    :param image: The RGB image to be analysed
     :return: The number of pixels that identify blood or veins."""
     
     # extract the red channel of the image
@@ -121,7 +121,7 @@ def measure_vascular(image) -> int:
 def measure_globules(image) -> int:
     """Computes the number of blobs in the given (RGB) image.
     
-    :param image: The image to be analysed
+    :param image: The RGB image to be analysed
     :return: The number of blobs in the image
 
     """
@@ -142,7 +142,7 @@ def measure_globules(image) -> int:
 def measure_streaks(image) -> int:
     """Computes the irregularity of the lesion in the given (BGR) image.
     
-    :param image: The image to be analysed
+    :param image: The BGR image to be analysed
     :return: The irregularity score of the lesion
 
     """
@@ -171,7 +171,7 @@ def measure_streaks(image) -> int:
 def measure_irregular_pigmentation(image):
     """Requires BGR images. God knows what use could this mess have. DO NOT USE for now.
     
-    :param image: The image to be analysed(?)
+    :param image: The BGR image to be analysed(?)
     :return: Nothing useful, and definitely not what the name suggests."""
     
     # get grayscale image and find threshold. Apply mask
