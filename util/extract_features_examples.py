@@ -258,7 +258,7 @@ def get_asymmetry(mask):
     
     :param mask: The Binary mask to be analyzed
     :return: Asymmetry measure from 0 to 1 where
-    0 is perfect asymmetry and 1 is perfect symmetry."""
+    0 is perfect symmetry and 1 is perfect asymmetry."""
     # mask = color.rgb2gray(mask)
     scores = []
     for _ in range(6):
@@ -387,8 +387,8 @@ def crop(mask):
         y_nonzero, x_nonzero = np.nonzero(mask)
         #set ylims to be lowest and highest points where mask contains nonzero pixel
         y_lims = [np.min(y_nonzero), np.max(y_nonzero)]
-        #compute initial x limit (which just gets overwritten)
-        #x_lims = np.array([np.min(x_nonzero), np.max(x_nonzero)])
+        #compute initial x limit
+        x_lims = np.array([np.min(x_nonzero), np.max(x_nonzero)])
         #compute x-limit from x-center +- larger distance from midpoint to left/right border
         x_dist = max(np.abs(x_lims - mid))
         x_lims = [mid - x_dist, mid+x_dist]
