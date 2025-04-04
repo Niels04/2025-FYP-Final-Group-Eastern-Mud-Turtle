@@ -217,40 +217,79 @@ def measure_irregular_pigmentation(image):
 
 
 def measure_regression(image):
+    """Computes number of bright, non-saturated pictures in the image.
+    
+    :param image: The BGR image to be analysed
+    :return: The number of pixels in the image with
+    low saturation (0-30) and high brightness(150-255)
+    measured in the hsv color fomat"""
    
     hsv_img = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    #set lower and upper limit for hsv values of colors to be selected.
     lower_color = np.array([0, 0, 150])
     upper_color = np.array([180, 30, 255])
+    #mask pixels in range
     mask = cv2.inRange(hsv_img, lower_color, upper_color)
+    #get number of pixels in range
     num_pixels = cv2.countNonZero(mask)
 
     return num_pixels
 
-
-
-
 def get_compactness(mask):
+    """Computes the compactness measure for the given binary mask.
+    
+    :param mask: The Binary mask to be analyzed
+    :return: Compactness measure \"Circularity\"
+    from 0 to inf, where lower values indicate
+    higher compactness."""
     # mask = color.rgb2gray(mask)
     area = np.sum(mask)
-
     struct_el = morphology.disk(3)
+    #erode mask once
     mask_eroded = morphology.binary_erosion(mask, struct_el)
+    #subtract eroded mask from original mask to obtain border pixels -> get number of border pixels with sum
     perimeter = np.sum(mask - mask_eroded)
-
+    #calculate and return "compactness" measure
     return perimeter**2 / (4 * np.pi * area)
 
 def get_asymmetry(mask):
+    """Computes the asymmetry for a given binary mask
+    by rotating 6 times 30°.
+    
+    :param mask: The Binary mask to be analyzed
+    :return: Asymmetry measure from 0 to 1 where
+    0 is perfect asymmetry and 1 is perfect symmetry."""
     # mask = color.rgb2gray(mask)
     scores = []
     for _ in range(6):
+        #crop mask to only look at the nonzero area
         segment = crop(mask)
-        (np.sum(segment))
+        #(np.sum(segment))
+        #append ratio of non-overlapping pixels between flipped mask and original mask over total mask pixels
         scores.append(np.sum(np.logical_xor(segment, np.flip(segment))) / (np.sum(segment)))
+        #rotate mask for next iteration
         mask = rotate(mask, 30)
+        #return average score
     return sum(scores) / len(scores)
 
 def get_multicolor_rate(im, mask, n):
+    """Computes the maximum euclidean distance between
+    2 dominant colors in the masked area of the image
+    that are adjacent in the hierarchy of dominance.
+    Uses kmeans with n clusters to find centroids that
+    represent \"dominant\" colors and compares only
+    colors such that > 8% of the masked area are
+    clustered with this color.
+    
+    :param image: The BFR or RGB image to analyze
+    :param mask: The binary mask to apply to the image
+    :param n: Number of clusters to use forMeans Color Clustering
+    :return: Maxiumum euclidean distance between 2 dominant colors
+    in the masked area of the image, which are adjacent in the
+    hierarchy of dominance. Note that return is the same for BGR
+    and RGB images."""
     # mask = color.rgb2gray(mask)
+    #scale image down for performance
     im = resize(im, (im.shape[0] // 4, im.shape[1] // 4), anti_aliasing=True)
     mask = resize(
         mask, (mask.shape[0] // 4, mask.shape[1] // 4), anti_aliasing=True
@@ -261,23 +300,25 @@ def get_multicolor_rate(im, mask, n):
     columns = im.shape[0]
     rows = im.shape[1]
     col_list = []
+    #create list of all colors present in masked area of image
     for i in range(columns):
         for j in range(rows):
             if mask[i][j] != 0:
                 col_list.append(im2[i][j] * 256)
-
+    #return empty string if nothing masked
     if len(col_list) == 0:
         return ""
-
+    #find n clusters of dominant colors
     cluster = KMeans(n_clusters=n, n_init=10).fit(col_list)
+    #obtain sorted list of dominant colors that cover > 8% of masked area
     com_col_list = get_com_col(cluster, cluster.cluster_centers_)
 
     dist_list = []
     m = len(com_col_list)
-
+    #return empty string if there is only 1 or 0 dominant colors
     if m <= 1:
         return ""
-
+    #compute euclidean distances between adjacent colors
     for i in range(0, m - 1):
         j = i + 1
         col_1 = com_col_list[i]
@@ -289,46 +330,86 @@ def get_multicolor_rate(im, mask, n):
                 + (col_1[2] - col_2[2]) ** 2
             )
         )
+    #return max distance between 2 adjacent colors
     return np.max(dist_list)
 
 def get_com_col(cluster, centroids):
+    """Computes a sorted list of dominant colors given
+    the KMeans clusters and centroids for all clusters
+    that contain > 8% of pixels. The list is sorted by
+    the proportion of pixels covered by this cluster.
+    
+    :param cluster: KMeans object fitted on pixel values of an image.
+    :param centroids: centroids of the KMeans algorithm, i.e. central
+    pixels of the clusters specified in \"cluster\".
+    :return: Sorted list of dominant colors, sorted by proportion,
+    excluding all clusters that cover <8% of the pixels."""
     com_col_list = []
+    #create labels for the number of clusters (dominant colors)
     labels = np.arange(0, len(np.unique(cluster.labels_)) + 1)
+    #count frequencies of each label with histogram
     (hist, _) = np.histogram(cluster.labels_, bins=labels)
     hist = hist.astype("float")
+    #normalize histogram to calculate proportions
     hist /= hist.sum()
 
-    rect = np.zeros((50, 300, 3), dtype=np.uint8)
+    #Commented out the parts that are redundant for computationand  and only produce a visualization
+    #rect = np.zeros((50, 300, 3), dtype=np.uint8)
     colors = sorted([(percent, color) for (percent, color) in zip(hist, centroids)], key= lambda x:x[0])
-    start = 0
+    #start = 0
     for percent, color in colors:
         if percent > 0.08:
             com_col_list.append(color)
-        end = start + (percent * 300)
-        cv2.rectangle(
-            rect,
-            (int(start), 0),
-            (int(end), 50),
-            color.astype("uint8").tolist(),
-            -1,
-        )
-        start = end
+        # end = start + (percent * 300)
+        # cv2.rectangle(
+        #     rect,
+        #     (int(start), 0),
+        #     (int(end), 50),
+        #     color.astype("uint8").tolist(),
+        #     -1,
+        # )
+        # start = end
     return com_col_list
 
 def crop(mask):
+        """Crops a given binary mask tighly on the vertical axis
+        and centrally on the horizontal axis. The x-axis center is
+        measured such that on both sides there are 50%
+        of nonzero mask pixels. The border for the x-crop
+        is then the midpoing +- the larger distance from
+        the midpoint to the left and right border.
+
+        :param mask: Binary Mask to be cropped.
+        :return: cropped mask"""
+        #compute x-midpoint
         mid = find_midpoint_v4(mask)
+        #get y & x coordinates of nonzero points
         y_nonzero, x_nonzero = np.nonzero(mask)
+        #set ylims to be lowest and highest points where mask contains nonzero pixel
         y_lims = [np.min(y_nonzero), np.max(y_nonzero)]
-        x_lims = np.array([np.min(x_nonzero), np.max(x_nonzero)])
+        #compute initial x limit (which just gets overwritten)
+        #x_lims = np.array([np.min(x_nonzero), np.max(x_nonzero)])
+        #compute x-limit from x-center +- larger distance from midpoint to left/right border
         x_dist = max(np.abs(x_lims - mid))
         x_lims = [mid - x_dist, mid+x_dist]
+        #crop mask with computed limits & return
         return mask[y_lims[0]:y_lims[1], x_lims[0]:x_lims[1]]
 
 def find_midpoint_v4(mask):
+        """Finds horizontal midpoint of the given binary
+        mask, such that 50% of nonzero pixels in the mask
+        are on either side of midpoint.
+
+        :param mask: Binary Mask to be examined.
+        :return x: horizontal coordinate of midpoint."""
+        #get horizontal vector which contains number of nonzero pixels for each mask column
         summed = np.sum(mask, axis=0)
+        #calculate 50% of nonzero pixels in mask as threshold
         half_sum = np.sum(summed) / 2
+        #iterate through columns until half of nonzero pixels in mask have been reached
         for i, n in enumerate(np.add.accumulate(summed)):
             if n > half_sum:
+                #return x-coordinate at shich 50% of nonzero pixels where exceeded
                 return i
   
 
