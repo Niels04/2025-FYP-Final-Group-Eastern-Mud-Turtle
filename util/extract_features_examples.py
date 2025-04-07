@@ -505,16 +505,17 @@ def asymmetry(mask):
 
 def rotation_asymmetry(mask, n: int):
 
-    asymmetry_scores = {}
+    asymmetry_scores = {} # results will be stored here
 
-    for i in range(n):
+    for i in range(n):          # for the chosen nr of rotations
 
-        degrees = 90 * i / n
+        degrees = 90 * i / n    # we choose n angles evenely spaced between 0 and 90
 
         rotated_mask = rotate(mask, degrees)
         cutted_mask = cut_mask(rotated_mask)
 
         asymmetry_scores[degrees] = asymmetry(cutted_mask)
+        # for each angle(key), save the asymmetry score(value)
 
     return asymmetry_scores
 
