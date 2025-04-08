@@ -518,9 +518,9 @@ def rotation_asymmetry(mask, n: int):
 
     return asymmetry_scores
 
-def mean_asymmetry(mask, rotations = 30):
+def mean_asymmetry(mask, rotations = 30): #gets the mean score of the vector obtained from rotation_asymmetry
     
-    asymmetry_scores = rotation_asymmetry(mask, rotations)
+    asymmetry_scores = rotation_asymmetry(mask, rotations) #runs rotation asymmetry on the mask provided
     mean_score = sum(asymmetry_scores.values()) / len(asymmetry_scores)
 
     return mean_score          
