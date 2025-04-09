@@ -1,0 +1,1 @@
+img_id,patient_id,lesion_id,featureA_score,featureB_score,featureC_score,true_melanoma_label
