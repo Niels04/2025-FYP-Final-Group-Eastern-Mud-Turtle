@@ -1,9 +1,9 @@
 from img_util import ImageDataLoader as IDL
 from inpaint_util import removeHair as rH
 from tqdm import tqdm
-from feature_A import fA_extractor
-from feature_B import fB_extractor
-from feature_C import fC_extractor
+# from feature_A import fA_extractor
+# from feature_B import fB_extractor
+# from feature_C import fC_extractor
 import pandas as pd
 
 # set up relevant directories
@@ -34,14 +34,17 @@ for img_rgb, img_gray, mask, name in tqdm(data_loader):
     name_split = name.split('_')
     patient_ID = '_'.join(name_split[:2])
     lesion_ID = int(name_split[2])
+
+    # get full ID
+    pat_les_ID = '_'.join(name_split[:3])
     
     # remove the hair from the image
     _, _, img_rgb_nH = rH(img_rgb, img_gray)
 
     # extract the features with the proper 
-    fA_score = fA_extractor(img_rgb, mask)
-    fB_score = fB_extractor(img_rgb, mask)
-    fC_score = fC_extractor(img_rgb, mask)
+    fA_score = 0
+    fB_score = 1
+    fC_score = 2
 
     # get the actual diagnosis for the lesion, and convert it in a 
     # binary value to indicate if it is melanoma or not
@@ -49,7 +52,7 @@ for img_rgb, img_gray, mask, name in tqdm(data_loader):
     true_label = 1 if diagnosis == 'MEL' else 0
 
     # create the new column for the final csv file
-    datapoint = [name, patient_ID, lesion_ID, fA_score, fB_score, fC_score, true_label]
+    datapoint = [name, patient_ID, lesion_ID, pat_les_ID, fA_score, fB_score, fC_score, true_label]
     cd.loc[len(cd)] = datapoint
 
 # save the updated classified.csv

@@ -119,16 +119,14 @@ class ImageDataLoader:
     def __iter__(self):
         for i in range(self.num_sample):
             
-            # try to load the image, if the mask name leads to no such file, update loss counter
+            # try to load the image and mask, if one of the two leads to no such file, update loss counter
             try:
                 img_rgb, img_gray = readImageFile(self.img_list[i])
+                mask = readImageFile(self.mask_list[i], is_mask= True)
             
             except Exception:
                 self.lost += 1
                 continue
-
-            # load the mask
-            mask = readImageFile(self.mask_list[i], is_mask= True)
 
             if self.transform:
                 img_rgb = self.transform(img_rgb)
