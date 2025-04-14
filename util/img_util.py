@@ -71,23 +71,39 @@ class ImageDataLoader:
 
         # set up counter to keep track of the amount of name inconsistencies
         self.lost = 0
-
+        
         # iterate through the masks folder to save the individual file paths
         for f in os.listdir(mask_directory):
 
-            # if the file is an image
+            # if the file is in a valid format
             if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+                
+                # different directories or mask file
+                if mask_directory != img_directory or '_mask' in f:
 
-                # get the full path of the mask
-                mask_path = os.path.join(mask_directory, f)
+                    # get the full path of the mask
+                    mask_path = os.path.join(mask_directory, f)
 
-                # get the name of the corresponding image
-                img_name = f.replace('_mask', '')
+                    # get the name of the corresponding image
+                    img_name = f.replace('_mask', '')
 
-                # get the full path of the image
-                img_path = os.path.join(img_directory, img_name)
+                    # get the full path of the image
+                    img_path = os.path.join(img_directory, img_name)
+                
+                # same directories and image file
+                else:
 
-                # append mask and image to the relative list
+                    # get the full path of the image
+                    img_path = os.path.join(img_directory, f)
+
+                    # get the name of the corresponding mask
+                    name, ext = os.path.splitext(f)
+                    mask_name = f"{name}_mask{ext}"
+
+                    # get the full path of the mask
+                    mask_path = os.path.join(mask_directory, mask_name)
+
+                # append mask and image to the relative lists
                 self.img_list.append(img_path)
                 self.mask_list.append(mask_path) 
 
