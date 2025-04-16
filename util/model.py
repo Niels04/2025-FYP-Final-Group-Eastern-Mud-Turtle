@@ -1,7 +1,10 @@
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.tree import DecisionTreeClassifier #Promising
+from sklearn.neighbors import KNeighborsClassifier  #This one is really unaccurate (10%) which is basicly worst than guessing (but to be more exact
+                                                    #this method works well on the larger classes, and the Melanoma is not :( )
+
 from sklearn.metrics import classification_report, accuracy_score
-from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 def read(file):
     df=pd.read_csv(file)
@@ -13,17 +16,27 @@ def split_data(X, y, test_size=0.2, random_state=42):
 
 def model(X_train, y_train,X_test, y_test):
     # Initialize and train the model
-    model = RandomForestClassifier(class_weight='balanced')
-    model.fit(X_train, y_train)
+    clf1 = RandomForestClassifier()
+    clf2 = DecisionTreeClassifier()
+    clf3 = KNeighborsClassifier()
+
+    voting_clf = VotingClassifier(estimators=[
+    ('rf', clf1), 
+    ('dt', clf2), 
+    ('knn', clf3)
+    ], voting='hard') # or voting='soft'
+
+    voting_clf.fit(X_train, y_train)
 
     # Predict on the test set
-    y_pred = model.predict(X_test)
-
+    y_pred = voting_clf.predict(X_test)
     # Evaluate performance
     print("Accuracy:", accuracy_score(y_test, y_pred))
     print("Classification Report:\n", classification_report(y_test, y_pred))
 
-df=read('data\metadata.csv')
+file='data\metadata.csv'
+
+df=read(file)
 #Just for the metadata, droping not usable data, turning boolean values to 0-1, and making the str-values to numeric values
 df=df.drop(axis=1,labels=['diameter_1','diameter_2','patient_id','lesion_id','smoke','drink','background_father','background_mother','pesticide','gender','skin_cancer_history','cancer_history','has_piped_water','has_sewage_system','fitspatrick','img_id'])
 df['itch'] = df['itch'].astype(bool).astype(int)
@@ -38,3 +51,13 @@ y = df['diagnostic']
 X = df.drop(['diagnostic'], axis=1)
 X_train, X_test, y_train, y_test = split_data(X, y)
 model(X_train, y_train, X_test, y_test)
+
+#For the normal data
+#df=df.drop(axis=1,labels=['name', 'patient_ID', 'lesion_ID', 'pat_les_ID'])
+#y = df['true_label']
+#X = df.drop(['true_label'], axis=1)
+#X_train, X_test, y_train, y_test = split_data(X, y)
+#model(X_train, y_train, X_test, y_test)
+
+#It seems like currently the RandomForestClassifier is the best(in the case of hard voting), because the model only agree on something of the RandomForestClassifier
+#says yes. On the other hand soft voting could increase the overall accuracy, Maybe on the normal data it will change.
