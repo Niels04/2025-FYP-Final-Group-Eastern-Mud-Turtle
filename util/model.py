@@ -1,4 +1,4 @@
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GroupShuffleSplit
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.tree import DecisionTreeClassifier #Promising
 from sklearn.neighbors import KNeighborsClassifier  #This one is really unaccurate (10%) which is basicly worst than guessing (but to be more exact
@@ -53,11 +53,18 @@ X_train, X_test, y_train, y_test = split_data(X, y)
 model(X_train, y_train, X_test, y_test)
 
 #For the normal data
+#patient_group=df['pat_les_ID']
 #df=df.drop(axis=1,labels=['name', 'patient_ID', 'lesion_ID', 'pat_les_ID'])
 #y = df['true_label']
 #X = df.drop(['true_label'], axis=1)
 #X_train, X_test, y_train, y_test = split_data(X, y)
+#GroupShuffleSplit
+#gss=GroupShuffleSplit(n_splits=1,test_size=0.2, random_state=42)
+#train_ind,test_ind = next(gss.split(X,y,groups=patient_group))
+#X_train_gss, X_test_gss = X[train_idx], X[test_idx]
+#y_train_gss, y_test_gss = y[train_idx], y[test_idx]
 #model(X_train, y_train, X_test, y_test)
+#model(X_train_gss, y_train_gss, X_test_gss, y_test_gss)
 
 #It seems like currently the RandomForestClassifier is the best(in the case of hard voting), because the model only agree on something of the RandomForestClassifier
 #says yes. On the other hand soft voting could increase the overall accuracy, Maybe on the normal data it will change.
