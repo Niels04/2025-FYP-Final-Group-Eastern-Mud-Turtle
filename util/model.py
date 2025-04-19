@@ -11,7 +11,7 @@ def read(file):
     return df
 
 
-def split_data(X, y, test_size=0.2, random_state=42):
+def split_data(X, y, test_size=0.2, random_state=42):#I think it's super important that random_state=42 never changes cuz otherwise we overfit by looking at test data
     return train_test_split(X, y, test_size=test_size, random_state=random_state, stratify=y)
 
 def model(X_train, y_train,X_test, y_test):
@@ -37,7 +37,7 @@ def model(X_train, y_train,X_test, y_test):
 file='data\metadata.csv'
 
 df=read(file)
-#Just for the metadata, droping not usable data, turning boolean values to 0-1, and making the str-values to numeric values
+#Just for the metadata, dropping not usable data, turning boolean values to 0-1, and making the str-values to numeric values
 df=df.drop(axis=1,labels=['diameter_1','diameter_2','patient_id','lesion_id','smoke','drink','background_father','background_mother','pesticide','gender','skin_cancer_history','cancer_history','has_piped_water','has_sewage_system','fitspatrick','img_id'])
 df['itch'] = df['itch'].astype(bool).astype(int)
 df['grew'] = df['grew'].astype(bool).astype(int)
