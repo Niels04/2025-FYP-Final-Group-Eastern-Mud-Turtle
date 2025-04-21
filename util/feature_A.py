@@ -105,7 +105,7 @@ def fA_extractor(img, mask): #takes in a file path to image and mask
     mean_score = mean_asymmetry(mask_array)
     worst_asymmetry = np.max(rotation_asymmetry(mask_array))
 
-    return mean_score #check for both worst and mean and see which one works better maybe??
+    return mean_score, worst_asymmetry #check for both worst and mean and see which one works better maybe??
 
 #little test
 '''import os
