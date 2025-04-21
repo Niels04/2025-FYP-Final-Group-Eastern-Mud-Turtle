@@ -1,5 +1,5 @@
 import os
-import random
+import numpy as np
 import cv2
 
 # ignore warnings - needed in cases of inconsistent image - mask names
@@ -123,17 +123,23 @@ class ImageDataLoader:
             try:
                 img_rgb, img_gray = readImageFile(self.img_list[i])
                 mask = readImageFile(self.mask_list[i], is_mask= True)
+                mask = (mask > 127).astype(np.uint8) # mask as binary
+                # if the mask only contains 0s, update counter and skip
+                unique_vals = np.unique(mask)
+                if len(unique_vals) == 1 and int(unique_vals[0]) == 0:
+                    self.lost += 1
+                    continue
+
+                if self.transform:
+                    img_rgb = self.transform(img_rgb)
+                    img_gray = self.transform(img_gray)
+            
+                #obtain file name
+                name = self.img_list[i].split("/")[-1]
+
+                # yield necessary informations
+                yield img_rgb, img_gray, mask, name
             
             except Exception:
                 self.lost += 1
                 continue
-
-            if self.transform:
-                img_rgb = self.transform(img_rgb)
-                img_gray = self.transform(img_gray)
-            
-            #obtain file name
-            name = self.img_list[i].split("/")[-1]
-
-            # yield necessary informations
-            yield img_rgb, img_gray, mask, name

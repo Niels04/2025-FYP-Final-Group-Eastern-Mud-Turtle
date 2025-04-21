@@ -33,20 +33,21 @@ import cv2
 
 
 def get_multicolor_rate(im, mask, n):
-    im = resize(im, (im.shape[0] // 4, im.shape[1] // 4), anti_aliasing=True)
-    mask = resize(
-        mask, (mask.shape[0] // 4, mask.shape[1] // 4), anti_aliasing=True
-    )
-    im2 = im.copy()
-    im2[mask == 0] = 0
 
-    columns = im.shape[0]
-    rows = im.shape[1]
+    # small tweak to ensure same image and mask shape
+    target_shape = (mask.shape[0] // 4, mask.shape[1] // 4)
+    im_rsz = cv2.resize(im, (target_shape[1], target_shape[0]))
+    mask_rsz = cv2.resize(mask, (target_shape[1], target_shape[0]))
+    im2 = im_rsz.copy()
+    im2[mask_rsz == 0] = 0
+
+    columns = im_rsz.shape[0]
+    rows = im_rsz.shape[1]
     col_list = []
     for i in range(columns):
         for j in range(rows):
-            if mask[i][j] != 0:
-                col_list.append(im2[i][j] * 256)
+            if mask_rsz[i][j] != 0:
+                col_list.append(im2[i][j] * 255) # instead of 256
     if len(col_list) == 0:
         return ""
     

@@ -3,10 +3,12 @@ import numpy as np
 from math import sqrt, floor, ceil, nan, pi
 from skimage.transform import rotate
 
-def fA_extractor(img, mask): #takes in a file path to image and mask
+# image is not accessed
+def fA_extractor(mask): #takes in a file path to image and mask
 
+    # not necessary, IDL class opens the mask already
     #convert mask path to an array
-    mask_array = np.array(Image.open(mask).convert("L"))
+    # mask = np.array(Image.open(mask).convert("L"))
 
     #midpoint finder function
 
@@ -50,7 +52,7 @@ def fA_extractor(img, mask): #takes in a file path to image and mask
     #crops the mask to just the lesion
 
     def cut_mask(mask):
-    
+
         # input is numpy array mask
         col_sums = np.sum(mask, axis=0)     # sums up the values between 0 and 1
         row_sums = np.sum(mask, axis=1)     # shows if any row or column contains anything but 0s
@@ -102,8 +104,8 @@ def fA_extractor(img, mask): #takes in a file path to image and mask
 
         return mean_score    
     
-    mean_score = mean_asymmetry(mask_array)
-    worst_asymmetry = np.max(rotation_asymmetry(mask_array))
+    mean_score = mean_asymmetry(mask)
+    worst_asymmetry = np.max(rotation_asymmetry(mask, 30))
 
     return mean_score #check for both worst and mean and see which one works better maybe??
 

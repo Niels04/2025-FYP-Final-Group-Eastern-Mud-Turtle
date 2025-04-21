@@ -1,10 +1,16 @@
 from img_util import ImageDataLoader as IDL
 from inpaint_util import removeHair as rH
 from tqdm import tqdm
-# from feature_A import fA_extractor
-# from feature_B import fB_extractor
-# from feature_C import fC_extractor
+from feature_A import fA_extractor
+from feature_B import fB_extractor
+from feature_C import fC_extractor
 import pandas as pd
+
+
+"""Auxiliary python file that, given a set of lesion images with relative masks and metadata,
+outputs in a csv the relevant information about the lesion, such as patient id and lesion id, 
+with the computed features, thanks to the imported functions.
+A binary indicator about wether or not the lesion is a melanoma is also saved."""
 
 # set up relevant directories
 img_dir = '../data/lesion_imgs/'
@@ -41,10 +47,10 @@ for img_rgb, img_gray, mask, name in tqdm(data_loader):
     # remove the hair from the image
     _, _, img_rgb_nH = rH(img_rgb, img_gray)
 
-    # extract the features with the proper 
-    fA_score = 0
-    fB_score = 1
-    fC_score = 2
+    # extract the features with the proper function
+    fA_score = fA_extractor(mask)           # asymmetry - roundness of image
+    fB_score = fB_extractor(mask)           # border irregularity - compactness of image
+    fC_score = fC_extractor(img_rgb, mask)  # color - amount of different colors in image
 
     # get the actual diagnosis for the lesion, and convert it in a 
     # binary value to indicate if it is melanoma or not
@@ -54,6 +60,8 @@ for img_rgb, img_gray, mask, name in tqdm(data_loader):
     # create the new column for the final csv file
     datapoint = [name, patient_ID, lesion_ID, pat_les_ID, fA_score, fB_score, fC_score, true_label]
     cd.loc[len(cd)] = datapoint
+
+    # cd.to_csv(features_dir, index=False)
 
 # save the updated classified.csv
 cd.to_csv(features_dir, index=False)
