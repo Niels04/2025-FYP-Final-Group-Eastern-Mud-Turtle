@@ -10,11 +10,11 @@ import pandas as pd
 img_dir = '../data/lesion_imgs/'
 mask_dir = '../data/lesion_masks/'
 metadata_dir = "../data/metadata.csv"
-classified_dir = "../data/classified.csv"
+features_dir = "../data/features.csv"
 
 # read the relevant csv files
 md = pd.read_csv(metadata_dir)
-cd = pd.read_csv(classified_dir)
+cd = pd.read_csv(features_dir)
 
 # print(len(md[md['diagnostic'] == 'MEL']) == len(cd[cd['true_melanoma_label'] == 1]))
 
@@ -56,7 +56,7 @@ for img_rgb, img_gray, mask, name in tqdm(data_loader):
     cd.loc[len(cd)] = datapoint
 
 # save the updated classified.csv
-cd.to_csv(classified_dir, index=False)
+cd.to_csv(features_dir, index=False)
 
 # TEMPORARY: how many name mismatches (48, out of 2000+)
 print(f'Out of {len(data_loader)} image - mask pairs, {data_loader.lost} were lost due to name discrepancies.')
