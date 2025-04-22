@@ -5,11 +5,41 @@ from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score, recall_score, roc_auc_score, roc_curve
+import matplotlib.pyplot as plt
+
+class Performance:
+    """Class to store performance metrics
+    of a method on either test or validation/test data.
+    """
+    def __init__(self, meanAcc:float, varAcc:float, meanRecall:float, varRecall:float, meanAUC:float, varAUC:float):
+        self.meanAcc = meanAcc
+        self.varAcc = varAcc
+        self.meanRecall = meanRecall
+        self.varRecall = varRecall
+        self.meanAUC = meanAUC
+        self.varAUC = varAUC
+    def __str__(self):
+        return (
+            f"\tMean Accuracy: {self.meanAcc:.4f}\n"
+            f"\tVariance Accuracy: {self.varAcc:.4f}\n"
+            f"\tMean Recall: {self.meanRecall:.4f}\n"
+            f"\tVariance Recall: {self.varRecall:.4f}\n"
+            f"\tMean AUC: {self.meanAUC:.4f}\n"
+            f"\tVariance AUC: {self.varAUC:.4f}"
+        )
+
+class MethodPerformance:
+    """Class to store performance metrics
+    for a particular method on its training
+    and validation/test data."""
+    def __init__(self, trainPerf: Performance, valPerf: Performance):
+        self.trainPerformance = trainPerf
+        self.validationPerformance = valPerf
 
 class Evaluator:
     def __init__(self):
-        self.accuracies = {}
+        self.performances = {}
     
     #NOTE: This is for our own iterative process of finding the best classifier/trainSize/hyperparameters like tree depth, etc...
     #      For the final evaluation we could slightly re-write this method to measure prediction accuracy on actual test data
@@ -20,13 +50,13 @@ class Evaluator:
 
     #      To be added:
     #       - automatic boxplot generation of performances for all inputed classifiers (should maybe use higher nShuffles)
-    #       - method that generates ROC curve graphic for a selected classifier
     #       - method that evaluates performance with test data (only use at end) -> could use for hypothesis testing
     #       - 
-    def evalClassifier(self, classifier, name:str, xTrain:pd.DataFrame, yTrain:pd.DataFrame, patientGroups:pd.DataFrame, nShuffles = 5, validationSize=0.2):
-        """Given the classifier, computes AUC(accuracy) over given
-        number of grouped shuffles of the given training data,
-        grouped by the given column.\n
+    def evalClassifier(self, classifier, name:str, xTrain:pd.DataFrame, yTrain:pd.DataFrame, patientGroups:pd.DataFrame, threshold:float, nShuffles = 10, validationSize=0.2, saveCurveROC = False):
+        """Given the classifier, computes AUC(accuracy) and
+        recall (TP/(TP+FN)) over given number of grouped
+        shuffles of the given training data, grouped by the
+        given column.\n
         Stores results in Evaluator class (can be printed with
         \"printPerformances()\").
 
@@ -34,29 +64,97 @@ class Evaluator:
         :param name: Classifier name string
         :param xTrain: The x-columns of the training/working data
         :param yTrain: The y-column of the training/working data
-        :param patientGroups: Column of trainging/working data to group by
+        :param patientGroups: Column of training/working data to group by
+        :param threshold: Decision Threshold from 0 to 1 (0.4 means that everything with probability of melanoma > 0.4 will be classified as melanoma)
         :param nShuffles: Number of different shuffled folds to perform, default=5
         :param validationSize: Proportion of training/working data to be used as validation Data, default=0.2
         :return None:"""
-        ACCs = np.zeros(nShuffles)#array to store accuracies(AUCss)
+        ACCsTrain = np.zeros(nShuffles)#array to store accuracy scores for training data
+        RECsTrain = np.zeros(nShuffles)#array to store recall scores for training data
+        AUCsTrain = np.zeros(nShuffles)#array to store AUC scores (area under ROC curve) for training data
+        ACCsVal = np.zeros(nShuffles)#array to store accuracy scores for validation data
+        RECsVal = np.zeros(nShuffles)#array to store recall scores for validation data
+        AUCsVal = np.zeros(nShuffles)#array to store AUC scores (area under ROC curve) for validation data
         
+        #only for generating ROC curve over all shuffles (for validation data)
+        allYLabels = []
+        allYPredictionProbs = []
+
         #iterate through all splits, train the model and evaluate performance
         gss=GroupShuffleSplit(n_splits=nShuffles, test_size=validationSize, random_state=42)
         for i, (trainIdx, valIdx) in enumerate(gss.split(xTrain, yTrain, patientGroups)):
-            #fit classifier on current split
+            #FIT CLASSIFIER ON CURRENT SPLIT
             classifier.fit(xTrain.iloc[trainIdx], yTrain.iloc[trainIdx])
-            #test classifier on validation data for current split
-            yPred = classifier.predict(xTrain.iloc[valIdx])
-            ACCs[i] = accuracy_score(yTrain.iloc[valIdx], yPred)
 
-        self.accuracies[name] = (np.mean(ACCs), np.var(ACCs))#store performance of the classifier in dictionary
+            #TEST CLASSIFIER ON CURRENT SPLIT
+
+            #test on training data for current split---------------
+            yProbs = classifier.predict_proba(xTrain.iloc[trainIdx])[:, 1]#predict melanoma probability for training data
+            #calculate AUC for current shuffle using the prediction probabilities
+            AUCsTrain[i] = roc_auc_score(yTrain.iloc[trainIdx], yProbs)
+            #turn predicted probabilities into binary predictions using the given decision threshold
+            yPred = (yProbs >= threshold).astype(int)
+            #compute accuracy and recall for the given decision threshold
+            ACCsTrain[i] = accuracy_score(yTrain.iloc[trainIdx], yPred)
+            RECsTrain[i] = recall_score(yTrain.iloc[trainIdx], yPred)
+            
+            #test on validation data for current split--------------
+            yProbs = classifier.predict_proba(xTrain.iloc[valIdx])[:, 1]#predict melanoma probability for evaluation data
+            if saveCurveROC:
+                allYPredictionProbs.extend(yProbs)#save prediction probabilities for current shuffle for combined ROC curve computation
+                allYLabels.extend(yTrain.iloc[valIdx])#save true labels for current shuffle for combined ROC curve computation
+            #calculate AUC for current shuffle using the prediction probabilities
+            AUCsVal[i] = roc_auc_score(yTrain.iloc[valIdx], yProbs)
+            #turn predicted probabilities into binary predictions using the given decision threshold
+            yPred = (yProbs >= threshold).astype(int)
+            #compute accuracy and recall for the given decision threshold
+            ACCsVal[i] = accuracy_score(yTrain.iloc[valIdx], yPred)
+            RECsVal[i] = recall_score(yTrain.iloc[valIdx], yPred)
+
+        trainPerformance = Performance(np.mean(ACCsTrain), np.var(ACCsTrain), np.mean(RECsTrain), np.var(RECsTrain), np.mean(AUCsTrain), np.var(AUCsTrain))
+        validationPerformance = Performance(np.mean(ACCsVal), np.var(ACCsVal), np.mean(RECsVal), np.var(RECsVal), np.mean(AUCsVal), np.var(AUCsVal))
+        self.performances[name] = MethodPerformance(trainPerformance, validationPerformance)#store performance for current method in dict
+
+        if saveCurveROC:#compute a combined ROC curve that takes into account predictions over all shuffles and save it to .png
+            self.makeGraphROC(name, allYLabels, allYPredictionProbs, dataType="validation")
+        #NOTE: "Combined" means that the ROC curve is computed based on the predicted probabilities over all of the random grouped
+        #      shuffles FOR THE VALIDATION DATA
     
     def printPerformances(self) -> None:
-        for name, acc in self.accuracies.items():
-            print(f"Accuracy for classifier \"{name}\"")
-            print(f"Mean: {acc[0]}")#print mean accuracy over shouffles for this method
-            print(f"Variance: {acc[1]}")#print variance of accuracy over shouffles for this method
-            print("\n")
+        for name, perf in self.performances.items():
+            print(f"Performance for method \"{name}\"")
+            print("On training data:")
+            print(perf.trainPerformance)
+            print("On validation data:")
+            print(perf.validationPerformance)
+            print("\n\n")
+
+    def makeGraphROC(self, name:str, yLabels: pd.DataFrame, yPredictedProbs: pd.DataFrame, dataType:str) -> None:
+        """Creates an ROC curve given a column of true yLabels and predicted yProbabilities.\n
+        Saves the plotted curve as .png with the provided method name as a suffix.\n
+        :param name: name of the method for which the curve is generated
+        :param yLabels: true yLabels
+        :param yPredictedProbs: probabilities for label=1 generated by method
+        :param dataType: specify if input data was training/validation/test data
+        :return None:"""
+
+        fPosRate, tPosRate, _ = roc_curve(yLabels, yPredictedProbs)
+        AUCscore = roc_auc_score(yLabels, yPredictedProbs)
+
+        plt.figure(figsize=(8, 6))
+        plt.plot(fPosRate, tPosRate, label=f'AUC = {AUCscore:.2f}', linewidth=2)
+        plt.plot([0, 1], [0, 1], 'k--', label='Random Guess')#display random guess middle line
+
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title(f'Combined ROC Curve for method \"{name}\" on {dataType} data')
+        plt.legend(loc='lower right')
+        plt.grid(True)
+
+        #save to png
+        plt.savefig(f"roc_curve_{name}.png", dpi=300, bbox_inches='tight')
+        plt.close()#frees up the memory
+
 #end of Evaluator class
 
 def read(file):
@@ -86,7 +184,7 @@ df = pd.get_dummies(df, columns=['region'],dtype=int)
 
 #prepare necessary input:
 #X_train, y_train & patientGroup of training/working data
-y = df['diagnostic']#obtain true label column
+y = (df['diagnostic'] == "MEL")#obtain true label column and set it to 0 for non-melanoma and 1 for melanoma
 X = df.drop(['diagnostic'], axis=1)#obtain X-data by dropping true label -> BUT it still contains the patient_id because it needs to be part of the split
 X_train, X_test, y_train, y_test = split_data(X, y)
 patientGroup=X_train["patient_id"]#obtain grouping column for training/working data (grouping by patient_id) (NOT over the whole dataset but only over the training data)
@@ -102,13 +200,13 @@ voting_clf = VotingClassifier(estimators=[
     ('rf', clf1), 
     ('dt', clf2), 
     ('knn', clf3)
-    ], voting='hard') # or voting='soft'
+    ], voting='soft') # or voting='hard'
 
 eval = Evaluator()
-eval.evalClassifier(clf1, "RandomForest", X_train, y_train, patientGroup)
-eval.evalClassifier(clf2, "DecisionTree", X_train, y_train, patientGroup)
-eval.evalClassifier(clf3, "KNN", X_train, y_train, patientGroup)
-eval.evalClassifier(voting_clf, "Voting", X_train, y_train, patientGroup)
+eval.evalClassifier(clf1, "RandomForest", X_train, y_train, patientGroup, threshold=0.5)
+eval.evalClassifier(clf2, "DecisionTree", X_train, y_train, patientGroup, threshold=0.5, saveCurveROC=True)
+eval.evalClassifier(clf3, "KNN", X_train, y_train, patientGroup, threshold=0.5)
+eval.evalClassifier(voting_clf, "Voting", X_train, y_train, patientGroup, threshold=0.5)
 eval.printPerformances()
 
 #NOTE: We could try other stuff here like different parameters for K in KNN
