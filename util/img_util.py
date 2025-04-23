@@ -122,8 +122,8 @@ class ImageDataLoader:
             # try to load the image and mask, if one of the two leads to no such file, update loss counter
             try:
                 img_rgb, img_gray = readImageFile(self.img_list[i])
-                mask = readImageFile(self.mask_list[i], is_mask= True)
-                mask = (mask > 127).astype(np.uint8) # mask as binary
+                mask_og = readImageFile(self.mask_list[i], is_mask= True)
+                mask = (mask_og > 127).astype(np.uint8) # mask as binary
                 # if the mask only contains 0s, update counter and skip
                 unique_vals = np.unique(mask)
                 if len(unique_vals) == 1 and int(unique_vals[0]) == 0:
@@ -138,7 +138,7 @@ class ImageDataLoader:
                 name = self.img_list[i].split("/")[-1]
 
                 # yield necessary informations
-                yield img_rgb, img_gray, mask, name
+                yield img_rgb, img_gray, mask, mask_og, name
             
             except Exception:
                 self.lost += 1

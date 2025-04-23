@@ -148,7 +148,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     rows = []
 
     # iterate through the pairs
-    for img_rgb, img_gray, mask, name in data_loader:
+    for img_rgb, img_gray, mask, mask_og, name in data_loader:
 
         # get patient_id and lesion_id from the filename
         name_split = name.split('_')
@@ -161,7 +161,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
         # extract the features with the proper functions
 
-        fA_score = fA_extractor(mask)                      # asymmetry - roundness of image
+        fA_score,fA_score_worst = fA_extractor(mask_og)                      # asymmetry - roundness of image
         fB_score = fB_extractor(mask)                      # border irregularity - compactness of image
         fC_score = fC_extractor(img_rgb, mask)             # color - amount of different colors in image
 
