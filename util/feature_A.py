@@ -99,7 +99,7 @@ def fA_extractor(mask): #takes in a file path to image and mask
     
     def mean_asymmetry(mask, rotations = 30):
     
-        asymmetry_scores = rotation_asymmetry(mask, rotations) #
+        asymmetry_scores = rotation_asymmetry(mask, rotations) 
         mean_score = sum(asymmetry_scores.values()) / len(asymmetry_scores)
 
         return mean_score    
