@@ -97,6 +97,13 @@ features_dir = "../data/features.csv"
 #     # TEMPORARY: how many name mismatches (48, out of 2000+)
 #     print(f'Out of {len(data_loader)} image - mask pairs, {data_loader.lost} were lost due to name discrepancies.')
 
+def normalizeMinMax(column:pd.Series) -> pd.Series:
+    #min and max from the column
+    minVal = column.min()
+    maxVal = column.max()
+
+    #apply min-max scaling
+    return ((column - minVal)/(maxVal - minVal))
 
 # hepler function for main python script
 def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, base_model= True) -> pd.DataFrame:
@@ -198,13 +205,14 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
     cd.columns = col_names
 
+    #normalize the features that aren't between 0 and 1 already
+    cd["fC_score"] = normalizeMinMax(cd["fC_score"])
+
+    if not base_model:
+        cd["fCHEESE_score"] = normalizeMinMax(cd["fCHEESE_score"])
+
     # save df if specified
     if features_dir:
         cd.to_csv(features_dir)
     
     return cd
-
-
-
-
-
