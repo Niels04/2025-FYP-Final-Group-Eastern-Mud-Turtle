@@ -1,5 +1,6 @@
 from sklearn.model_selection import train_test_split, GroupShuffleSplit
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier #Promising
 from sklearn.neighbors import KNeighborsClassifier  #This one is really unaccurate (10%) which is basicly worst than guessing (but to be more exact
                                                     #this method works well on the larger classes, and the Melanoma is not :( )
@@ -19,11 +20,13 @@ def model(X_train, y_train,X_test, y_test):
     clf1 = RandomForestClassifier()
     clf2 = DecisionTreeClassifier()
     clf3 = KNeighborsClassifier()
+    clf4 = LogisticRegression(class_weight="balance")
 
     voting_clf = VotingClassifier(estimators=[
     ('rf', clf1), 
     ('dt', clf2), 
-    ('knn', clf3)
+    ('knn', clf3),
+    ('lr', clf4)
     ], voting='hard') # or voting='soft'
 
     voting_clf.fit(X_train, y_train)
@@ -63,8 +66,11 @@ model(X_train, y_train, X_test, y_test)
 #train_ind,test_ind = next(gss.split(X,y,groups=patient_group))
 #X_train_gss, X_test_gss = X[train_idx], X[test_idx]
 #y_train_gss, y_test_gss = y[train_idx], y[test_idx]
+#train_ind_2,test_ind_2 = next(gss.split(X_train_gss,y_train_gss,groups=patient_group))
+#X_train_gss_2, X_test_gss_2 = X[train_idx_2], X[test_idx_2]
+#y_train_gss_2, y_test_gss_2 = y[train_idx_2], y[test_idx_2]
 #model(X_train, y_train, X_test, y_test)
-#model(X_train_gss, y_train_gss, X_test_gss, y_test_gss)
+#model(X_train_gss_2, y_train_gss_2, X_test_gss_2, y_test_gss_2)
 
 #It seems like currently the RandomForestClassifier is the best(in the case of hard voting), because the model only agree on something of the RandomForestClassifier
 #says yes. On the other hand soft voting could increase the overall accuracy, Maybe on the normal data it will change.
