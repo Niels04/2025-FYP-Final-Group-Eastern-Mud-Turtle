@@ -3,8 +3,6 @@ import numpy as np
 from skimage.transform import resize
 from sklearn.cluster import KMeans
 
-<<<<<<< HEAD
-=======
 import os
 import random
 import cv2
@@ -33,47 +31,6 @@ import cv2
 # img, imgbw = readImageFile(imagepath)
 # mask = readImageFile(maskpath, is_mask=True)
 
-
-def get_multicolor_rate(im, mask, n):
-
-    # small tweak to ensure same image and mask shape
-    target_shape = (mask.shape[0] // 4, mask.shape[1] // 4)
-    im_rsz = cv2.resize(im, (target_shape[1], target_shape[0]))
-    mask_rsz = cv2.resize(mask, (target_shape[1], target_shape[0]))
-    im2 = im_rsz.copy()
-    im2[mask_rsz == 0] = 0
-
-    columns = im_rsz.shape[0]
-    rows = im_rsz.shape[1]
-    col_list = []
-    for i in range(columns):
-        for j in range(rows):
-            if mask_rsz[i][j] != 0:
-                col_list.append(im2[i][j] * 255) # instead of 256
-    if len(col_list) == 0:
-        return ""
-    
-    cluster = KMeans(n_clusters=n, n_init=10).fit(col_list)
-    com_col_list = get_com_col(cluster, cluster.cluster_centers_)
-    return com_col_list
-
-
-
-def get_com_col(cluster, centroids):
-    com_col_list = []
-    labels = np.arange(0, len(np.unique(cluster.labels_)) + 1)
-    (hist, _) = np.histogram(cluster.labels_, bins=labels)
-    hist = hist.astype("float")
-    hist /= hist.sum()
-
-    colors = sorted([(percent, color) for (percent, color) in zip(hist, centroids)], key= lambda x:x[0])
-    for percent, color in colors:
-        if percent > 0.08:
-            com_col_list.append(color)
-    return com_col_list
-
-
->>>>>>> 1f3f47fd665a487887da3756d8ba57048d04900b
 def fC_extractor(img, mask, n= 6, threshold = 30):
     def get_com_col(cluster, centroids):
         com_col_list = []
@@ -89,20 +46,21 @@ def fC_extractor(img, mask, n= 6, threshold = 30):
         return com_col_list
     
     def get_multicolor_rate(im, mask, n):
-        im = resize(im, (im.shape[0] // 4, im.shape[1] // 4), anti_aliasing=True)
-        mask = resize(
-            mask, (mask.shape[0] // 4, mask.shape[1] // 4), anti_aliasing=True
-        )
-        im2 = im.copy()
-        im2[mask == 0] = 0
 
-        columns = im.shape[0]
-        rows = im.shape[1]
+        # small tweak to ensure same image and mask shape
+        target_shape = (mask.shape[0] // 4, mask.shape[1] // 4)
+        im_rsz = cv2.resize(im, (target_shape[1], target_shape[0]))
+        mask_rsz = cv2.resize(mask, (target_shape[1], target_shape[0]))
+        im2 = im_rsz.copy()
+        im2[mask_rsz == 0] = 0
+
+        columns = im_rsz.shape[0]
+        rows = im_rsz.shape[1]
         col_list = []
         for i in range(columns):
             for j in range(rows):
-                if mask[i][j] != 0:
-                    col_list.append(im2[i][j] * 256)
+                if mask_rsz[i][j] != 0:
+                    col_list.append(im2[i][j] * 255) # instead of 256
         if len(col_list) == 0:
             return ""
         
@@ -127,19 +85,19 @@ def fC_extractor(img, mask, n= 6, threshold = 30):
             reduced_list.append(color)
     return len(reduced_list)
 
-imagepath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269.png"
-maskpath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269_mask.png"
+# imagepath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269.png"
+# maskpath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269_mask.png"
 
-image = cv2.imread("imagepath")
-#image_2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-mask = cv2.imread("maskpath", 0)
+# image = cv2.imread("imagepath")
+# #image_2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+# mask = cv2.imread("maskpath", 0)
 
-if image is None:
-    raise FileNotFoundError(f"Image not found: {imagepath}")
-if mask is None:
-    raise FileNotFoundError(f"Mask not found: {maskpath}")
+# if image is None:
+#     raise FileNotFoundError(f"Image not found: {imagepath}")
+# if mask is None:
+#     raise FileNotFoundError(f"Mask not found: {maskpath}")
 
-image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+# image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-colors = fC_extractor(image_rgb, mask, n=8)
-print(f"Found {colors} distinct colors.")
+# colors = fC_extractor(image_rgb, mask, n=8)
+# print(f"Found {colors} distinct colors.")

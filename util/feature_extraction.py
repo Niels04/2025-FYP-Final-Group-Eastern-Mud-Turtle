@@ -148,7 +148,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     rows = []
 
     # iterate through the pairs
-    for img_rgb, img_gray, mask, mask_og, name in data_loader:
+    for img_rgb, img_gray, mask, mask_og, name in tqdm(data_loader):
 
         # get patient_id and lesion_id from the filename
         name_split = name.split('_')
@@ -161,7 +161,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
         # extract the features with the proper functions
 
-        fA_score,fA_score_worst = fA_extractor(mask_og)                      # asymmetry - roundness of image
+        fA_score, fA_score_worst = fA_extractor(mask_og)                      # asymmetry - roundness of image
         fB_score = fB_extractor(mask)                      # border irregularity - compactness of image
         fC_score = fC_extractor(img_rgb, mask)             # color - amount of different colors in image
 
@@ -205,14 +205,17 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
     cd.columns = col_names
 
+
     #normalize the features that aren't between 0 and 1 already
+
     cd["fC_score"] = normalizeMinMax(cd["fC_score"])
 
     if not base_model:
         cd["fCHEESE_score"] = normalizeMinMax(cd["fCHEESE_score"])
 
+
     # save df if specified
     if features_dir:
-        cd.to_csv(features_dir)
+        cd.to_csv(features_dir, index= False)
     
     return cd
