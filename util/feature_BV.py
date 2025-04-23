@@ -31,7 +31,7 @@ def fBV_extractor(image, mask) -> float:
     h = image_hsv[:, :, 0]
 
     # create mask to filter out all pixels that are not blue / purple-ish
-    bp_mask = (image_hsv[:, :, 0] >= 100) & (image_hsv[:, :, 0] <= 145)
+    bp_mask = (h >= 100) & (h <= 145)
     # Note: H is in degrees, but in cv2 its range is not 0-360 but 0-179, so we halve the values
 
     # store n. of blue / purple pixels
