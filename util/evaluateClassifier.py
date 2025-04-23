@@ -12,13 +12,17 @@ class Performance:
     """Class to store performance metrics
     of a method on either test or validation/test data.
     """
-    def __init__(self, meanAcc:float, varAcc:float, meanRecall:float, varRecall:float, meanAUC:float, varAUC:float):
+    def __init__(self, ACCs: pd.DataFrame, RECs: pd.DataFrame, AUCs: pd.DataFrame, meanAcc:float, varAcc:float, meanRecall:float, varRecall:float, meanAUC:float, varAUC:float):
         self.meanAcc = meanAcc
         self.varAcc = varAcc
         self.meanRecall = meanRecall
         self.varRecall = varRecall
         self.meanAUC = meanAUC
         self.varAUC = varAUC
+        #necessary to save actual performances for later boxplot generation
+        self.ACCs = ACCs
+        self.RECs = RECs
+        self.AUCs = AUCs
     def __str__(self):
         return (
             f"\tMean Accuracy: {self.meanAcc:.4f}\n"
@@ -52,7 +56,7 @@ class Evaluator:
     #       - automatic boxplot generation of performances for all inputed classifiers (should maybe use higher nShuffles)
     #       - method that evaluates performance with test data (only use at end) -> could use for hypothesis testing
     #       - 
-    def evalClassifier(self, classifier, name:str, xTrain:pd.DataFrame, yTrain:pd.DataFrame, patientGroups:pd.DataFrame, threshold:float, nShuffles = 10, validationSize=0.2, saveCurveROC = False):
+    def evalClassifier(self, classifier, name:str, xTrain:pd.DataFrame, yTrain:pd.DataFrame, patientGroups:pd.DataFrame, threshold:float, nShuffles = 20, validationSize=0.2, saveCurveROC = False):
         """Given the classifier, computes AUC(accuracy) and
         recall (TP/(TP+FN)) over given number of grouped
         shuffles of the given training data, grouped by the
@@ -81,7 +85,7 @@ class Evaluator:
         allYPredictionProbs = []
 
         #iterate through all splits, train the model and evaluate performance
-        gss=GroupShuffleSplit(n_splits=nShuffles, test_size=validationSize, random_state=42)
+        gss=GroupShuffleSplit(n_splits=nShuffles, test_size=validationSize)#not using random_state here for complete randomness
         for i, (trainIdx, valIdx) in enumerate(gss.split(xTrain, yTrain, patientGroups)):
             #FIT CLASSIFIER ON CURRENT SPLIT
             classifier.fit(xTrain.iloc[trainIdx], yTrain.iloc[trainIdx])
@@ -111,8 +115,8 @@ class Evaluator:
             ACCsVal[i] = accuracy_score(yTrain.iloc[valIdx], yPred)
             RECsVal[i] = recall_score(yTrain.iloc[valIdx], yPred)
 
-        trainPerformance = Performance(np.mean(ACCsTrain), np.var(ACCsTrain), np.mean(RECsTrain), np.var(RECsTrain), np.mean(AUCsTrain), np.var(AUCsTrain))
-        validationPerformance = Performance(np.mean(ACCsVal), np.var(ACCsVal), np.mean(RECsVal), np.var(RECsVal), np.mean(AUCsVal), np.var(AUCsVal))
+        trainPerformance = Performance(ACCsTrain, RECsTrain, AUCsTrain, np.mean(ACCsTrain), np.var(ACCsTrain), np.mean(RECsTrain), np.var(RECsTrain), np.mean(AUCsTrain), np.var(AUCsTrain))
+        validationPerformance = Performance(ACCsVal, RECsVal, AUCsVal, np.mean(ACCsVal), np.var(ACCsVal), np.mean(RECsVal), np.var(RECsVal), np.mean(AUCsVal), np.var(AUCsVal))
         self.performances[name] = MethodPerformance(trainPerformance, validationPerformance)#store performance for current method in dict
 
         if saveCurveROC:#compute a combined ROC curve that takes into account predictions over all shuffles and save it to .png
@@ -155,14 +159,61 @@ class Evaluator:
         plt.savefig(f"roc_curve_{name}.png", dpi=300, bbox_inches='tight')
         plt.close()#frees up the memory
 
+    def makeBoxplot(self, metric:str) -> None:
+        """Generates a boxplot that compares the performances of all different
+        methods stored inside evaluator class in a boxplot and saves it as .png\n
+        :param metric: Performance metric to be compared, one of either: \"recall\", \"accuracy\" or \"AUC\"
+        :return None:"""
+        #obtain training and validation performances for all methods in a flattened list
+        trainPerfs = []
+        if metric == "recall":
+            trainPerfs = [val for perf in self.performances.values() for val in (perf.trainPerformance.RECs, perf.validationPerformance.RECs)]
+        elif metric == "accuracy":
+            trainPerfs = [val for perf in self.performances.values() for val in (perf.trainPerformance.ACCs, perf.validationPerformance.ACCs)]
+        elif metric == "AUC":
+            trainPerfs = [val for perf in self.performances.values() for val in (perf.trainPerformance.AUCs, perf.validationPerformance.AUCs)]
+        else:
+            raise Exception("\"metric\" must be either \"recall\", \"accuracy\" or \"AUC\".")
+        #obtain names of the corresponding methods
+        methodNames = list(self.performances.keys())
+        methodNames = [f"{name} ({suffix})" for name in methodNames for suffix in ("train", "val")]
+        #add boxplot code here!
+        #create boxplot
+        fig, axes = plt.subplots(figsize=(10, 6))
+        #box = axes.boxplot(trainPerfs, patch_artist=True, labels=methodNames)
+        box = axes.boxplot(trainPerfs)
+        axes.set_xticklabels(methodNames, rotation=45, ha='right')
+        axes.set_title(f"Method {metric} Comparison")
+        axes.set_ylabel(metric)
+        axes.set_xlabel("Method")
+        axes.grid(True, linestyle='--', alpha=0.7)
+
+        #save plot
+        plt.tight_layout()
+        plt.savefig(f"classifier_performance_boxplot_{metric}.png", dpi=300)
+        plt.close()
+
+
 #end of Evaluator class
 
 def read(file):
     df=pd.read_csv(file)
     return df
 
-def split_data(X, y, test_size=0.2, random_state=42):
-    return train_test_split(X, y, test_size=test_size, random_state=random_state, stratify=y)
+def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
+    """Perform a grouped shuffle split on the whole data(always the same with random_state=42).\n
+    Grouping is done on the column specified. The split is 80%/20%.
+    :param X: x values from the dataset, including the grouping column.
+    :param y: y values (labels) from the dataset.
+    :param groupName: Name of the column from the x-values to group by.
+    :return Split: xTrain, yTrain, xTest, yTest dataframes in this order."""
+    gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+    trainIdx, testIdx = next(gss.split(X, y, groups=X[groupName]))
+    xTrain = X.iloc[trainIdx]
+    yTrain = y.iloc[trainIdx]
+    xTest = X.iloc[testIdx]
+    yTest = y.iloc[testIdx]
+    return xTrain, yTrain, xTest, yTest
 
 #FOR NOW: just read the metadata file, group by patient id and test some classifiers
 
@@ -186,7 +237,7 @@ df = pd.get_dummies(df, columns=['region'],dtype=int)
 #X_train, y_train & patientGroup of training/working data
 y = (df['diagnostic'] == "MEL")#obtain true label column and set it to 0 for non-melanoma and 1 for melanoma
 X = df.drop(['diagnostic'], axis=1)#obtain X-data by dropping true label -> BUT it still contains the patient_id because it needs to be part of the split
-X_train, X_test, y_train, y_test = split_data(X, y)
+X_train, y_train, X_test, y_test = split_data(X, y, groupName="patient_id")
 patientGroup=X_train["patient_id"]#obtain grouping column for training/working data (grouping by patient_id) (NOT over the whole dataset but only over the training data)
 X_train = X_train.drop(["patient_id"], axis=1)#get rid of patient_id in training/working X-data
 X_test = X_test.drop(["patient_id"], axis=1)#get rid of patient_id in test X-data
@@ -208,6 +259,7 @@ eval.evalClassifier(clf2, "DecisionTree", X_train, y_train, patientGroup, thresh
 eval.evalClassifier(clf3, "KNN", X_train, y_train, patientGroup, threshold=0.5)
 eval.evalClassifier(voting_clf, "Voting", X_train, y_train, patientGroup, threshold=0.5)
 eval.printPerformances()
+eval.makeBoxplot("recall")
 
 #NOTE: We could try other stuff here like different parameters for K in KNN
 #      or different max_depth for Tree or Forest and compare the performances.
