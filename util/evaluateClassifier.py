@@ -5,6 +5,7 @@ from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score, recall_score, roc_auc_score, roc_curve
 import matplotlib.pyplot as plt
 
@@ -200,7 +201,7 @@ def read(file):
 
 def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
     """Perform a grouped shuffle split on the whole data(always the same with random_state=42).\n
-    Grouping is done on the column specified. The split is 80%/20%.
+    Grouping is done on the column specified. The split is 80%/20%.\n
     :param X: x values from the dataset, including the grouping column.
     :param y: y values (labels) from the dataset.
     :param groupName: Name of the column from the x-values to group by.
@@ -213,51 +214,51 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
     yTest = y.iloc[testIdx]
     return xTrain, yTrain, xTest, yTest
 
-#FOR NOW: just read the metadata file, group by patient id and test some classifiers
+# #FOR NOW: just read the metadata file, group by patient id and test some classifiers
 
-metadataFile="../data/metadata.csv"
+# metadataFile="../data/metadata.csv"
 
-df=read(metadataFile)
-#Just for the metadata, dropping not usable data, turning boolean values to 0-1, and making the str-values to numeric values
-df=df.drop(axis=1,labels=['diameter_1','diameter_2','lesion_id','smoke','drink','background_father','background_mother','pesticide','gender','skin_cancer_history','cancer_history','has_piped_water','has_sewage_system','fitspatrick','img_id'])
-df['itch'] = df['itch'].astype(bool).astype(int)
-df['grew'] = df['grew'].astype(bool).astype(int)
-df['hurt'] = df['hurt'].astype(bool).astype(int)
-df['changed'] = df['changed'].astype(bool).astype(int)
-df['bleed'] = df['bleed'].astype(bool).astype(int)
-df['elevation'] = df['elevation'].astype(bool).astype(int)
-df['biopsed'] = df['biopsed'].astype(bool).astype(int)
-df = pd.get_dummies(df, columns=['region'],dtype=int)
+# df=read(metadataFile)
+# #Just for the metadata, dropping not usable data, turning boolean values to 0-1, and making the str-values to numeric values
+# df=df.drop(axis=1,labels=['diameter_1','diameter_2','lesion_id','smoke','drink','background_father','background_mother','pesticide','gender','skin_cancer_history','cancer_history','has_piped_water','has_sewage_system','fitspatrick','img_id'])
+# df['itch'] = df['itch'].astype(bool).astype(int)
+# df['grew'] = df['grew'].astype(bool).astype(int)
+# df['hurt'] = df['hurt'].astype(bool).astype(int)
+# df['changed'] = df['changed'].astype(bool).astype(int)
+# df['bleed'] = df['bleed'].astype(bool).astype(int)
+# df['elevation'] = df['elevation'].astype(bool).astype(int)
+# df['biopsed'] = df['biopsed'].astype(bool).astype(int)
+# df = pd.get_dummies(df, columns=['region'],dtype=int)
 
-#EXAMPLE USAGE OF THE EVALUATOR CLASS
+# #EXAMPLE USAGE OF THE EVALUATOR CLASS
 
-#prepare necessary input:
-#X_train, y_train & patientGroup of training/working data
-y = (df['diagnostic'] == "MEL")#obtain true label column and set it to 0 for non-melanoma and 1 for melanoma
-X = df.drop(['diagnostic'], axis=1)#obtain X-data by dropping true label -> BUT it still contains the patient_id because it needs to be part of the split
-X_train, y_train, X_test, y_test = split_data(X, y, groupName="patient_id")
-patientGroup=X_train["patient_id"]#obtain grouping column for training/working data (grouping by patient_id) (NOT over the whole dataset but only over the training data)
-X_train = X_train.drop(["patient_id"], axis=1)#get rid of patient_id in training/working X-data
-X_test = X_test.drop(["patient_id"], axis=1)#get rid of patient_id in test X-data
+# #prepare necessary input:
+# #X_train, y_train & patientGroup of training/working data
+# y = (df['diagnostic'] == "MEL")#obtain true label column and set it to 0 for non-melanoma and 1 for melanoma
+# X = df.drop(['diagnostic'], axis=1)#obtain X-data by dropping true label -> BUT it still contains the patient_id because it needs to be part of the split
+# X_train, y_train, X_test, y_test = split_data(X, y, groupName="patient_id")
+# patientGroup=X_train["patient_id"]#obtain grouping column for training/working data (grouping by patient_id) (NOT over the whole dataset but only over the training data)
+# X_train = X_train.drop(["patient_id"], axis=1)#get rid of patient_id in training/working X-data
+# X_test = X_test.drop(["patient_id"], axis=1)#get rid of patient_id in test X-data
 
-#test different classifiers on the training/working data:
-clf1 = RandomForestClassifier()
-clf2 = DecisionTreeClassifier()
-clf3 = KNeighborsClassifier()
+# #test different classifiers on the training/working data:
+# clf1 = RandomForestClassifier()
+# clf2 = DecisionTreeClassifier()
+# clf3 = KNeighborsClassifier()
 
-voting_clf = VotingClassifier(estimators=[
-    ('rf', clf1), 
-    ('dt', clf2), 
-    ('knn', clf3)
-    ], voting='soft') # or voting='hard'
+# voting_clf = VotingClassifier(estimators=[
+#     ('rf', clf1), 
+#     ('dt', clf2), 
+#     ('knn', clf3)
+#     ], voting='soft') # or voting='hard'
 
-eval = Evaluator()
-eval.evalClassifier(clf1, "RandomForest", X_train, y_train, patientGroup, threshold=0.5)
-eval.evalClassifier(clf2, "DecisionTree", X_train, y_train, patientGroup, threshold=0.5, saveCurveROC=True)
-eval.evalClassifier(clf3, "KNN", X_train, y_train, patientGroup, threshold=0.5)
-eval.evalClassifier(voting_clf, "Voting", X_train, y_train, patientGroup, threshold=0.5)
-eval.printPerformances()
-eval.makeBoxplot("recall")
+# eval = Evaluator()
+# eval.evalClassifier(clf1, "RandomForest", X_train, y_train, patientGroup, threshold=0.5)
+# eval.evalClassifier(clf2, "DecisionTree", X_train, y_train, patientGroup, threshold=0.5, saveCurveROC=True)
+# eval.evalClassifier(clf3, "KNN", X_train, y_train, patientGroup, threshold=0.5)
+# eval.evalClassifier(voting_clf, "Voting", X_train, y_train, patientGroup, threshold=0.5)
+# eval.printPerformances()
+# eval.makeBoxplot("recall")
 
 #NOTE: We could try other stuff here like different parameters for K in KNN
 #      or different max_depth for Tree or Forest and compare the performances.
@@ -266,3 +267,46 @@ eval.makeBoxplot("recall")
 #      (could plot trainSize vs. performance on training data & test data)
 #      For the report we could use the output to conduct a statistical test
 #      whether one method is better than the other at some confidence level.
+
+#For the normal data
+featureFile = "../data/features.csv"
+df=read(featureFile)
+df=df.drop(axis=1,labels=["img_id", "patient_id", "lesion_id"])
+y = df['true_melanoma_label']#obtain melanoma binary label as y-data
+X = df.drop(['true_melanoma_label'], axis=1)#drop melanoma binary label to only leave x-data (also leaves pat_les_id for later grouping)
+xTrain, yTrain, xTest, yTest = split_data(X, y, "pat_les_ID")#split
+patientGroup=xTrain["pat_les_ID"]#obtain grouping column for training/working data (grouping by patient_id) (NOT over the whole dataset but only over the training data)
+xTrain = xTrain.drop(["pat_les_ID"], axis=1)#get rid of patient_id in training/working X-data
+xTest = xTest.drop(["pat_les_ID"], axis=1)#get rid of patient_id in test X-data
+
+#test different classifiers on the training/working data:
+clf1 = RandomForestClassifier()
+clf2 = DecisionTreeClassifier()
+clf3 = KNeighborsClassifier()
+clf4 = LogisticRegression(class_weight="balanced")
+
+voting_clf = VotingClassifier(estimators=[
+    ('rf', clf1), 
+    ('dt', clf2), 
+    ('knn', clf3)
+    ], voting='soft') # or voting='hard'
+
+eval = Evaluator()
+eval.evalClassifier(clf1, "RandomForest", xTrain, yTrain, patientGroup, threshold=0.5)
+eval.evalClassifier(clf2, "DecisionTree", xTrain, yTrain, patientGroup, threshold=0.5, saveCurveROC=True)
+eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5)
+eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.5)
+eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5)
+eval.printPerformances()
+eval.makeBoxplot("AUC")
+eval.makeBoxplot("recall")
+
+# gss=GroupShuffleSplit(n_splits=1,test_size=0.2, random_state=42)
+# train_ind,test_ind = next(gss.split(X,y,groups=patient_group))
+# X_train_gss, X_test_gss = X[train_idx], X[test_idx]
+# y_train_gss, y_test_gss = y[train_idx], y[test_idx]
+# train_ind_2,test_ind_2 = next(gss.split(X_train_gss,y_train_gss,groups=patient_group))
+# X_train_gss_2, X_test_gss_2 = X[train_idx_2], X[test_idx_2]
+# y_train_gss_2, y_test_gss_2 = y[train_idx_2], y[test_idx_2]
+# model(X_train, y_train, X_test, y_test)
+# model(X_train_gss_2, y_train_gss_2, X_test_gss_2, y_test_gss_2)
