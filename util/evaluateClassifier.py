@@ -160,7 +160,7 @@ class Evaluator:
         plt.grid(True)
 
         #save to png
-        plt.savefig(f"../result/roc_curve_{name}.png", dpi=300, bbox_inches='tight')
+        plt.savefig(f"result/roc_curve_{name}.png", dpi=300, bbox_inches='tight')
         plt.close()#frees up the memory
 
     def makeBoxplot(self, metric:str) -> None:
@@ -193,7 +193,7 @@ class Evaluator:
 
         #save plot
         plt.tight_layout()
-        plt.savefig(f"../result/classifier_performance_boxplot_{metric}.png", dpi=300)
+        plt.savefig(f"result/classifier_performance_boxplot_{metric}.png", dpi=300)
         plt.close()
 #end of Evaluator class
 
@@ -225,7 +225,7 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
 #      whether one method is better than the other at some confidence level.
 
 #For the normal data
-featureFile = "../data/features.csv"
+featureFile = "data/features.csv"
 df=read(featureFile)
 df=df.drop(axis=1,labels=["img_id", "patient_id", "lesion_id"])#drop unnecessary columns
 y = df['true_melanoma_label']#obtain melanoma binary label-column as y-data
@@ -236,15 +236,16 @@ xTrain = xTrain.drop(["pat_les_ID"], axis=1)#get rid of patient_id in training/w
 xTest = xTest.drop(["pat_les_ID"], axis=1)#get rid of patient_id in test X-data
 
 #test different classifiers on the training/working data:
-clf1 = RandomForestClassifier()
-clf2 = DecisionTreeClassifier()
-clf3 = KNeighborsClassifier()
+clf1 = RandomForestClassifier(class_weight="balanced",max_depth=4)
+clf2 = DecisionTreeClassifier(class_weight="balanced",max_depth=5)
+clf3 = KNeighborsClassifier(weights='distance',n_neighbors=1,p=2)
 clf4 = LogisticRegression(class_weight="balanced")
 
 voting_clf = VotingClassifier(estimators=[
     ('rf', clf1), 
     ('dt', clf2), 
-    ('knn', clf3)
+    #('knn', clf3),
+    ('lr',clf4)
     ], voting='soft')#voting="hard" produces an error in AUC calculation, so don't use it for now
 
 eval = Evaluator()
@@ -256,3 +257,4 @@ eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, t
 eval.printPerformances()
 eval.makeBoxplot("AUC")
 eval.makeBoxplot("recall")
+eval.makeBoxplot("accuracy")
