@@ -104,14 +104,12 @@ def fA_extractor(mask): #takes in a file path to image and mask
 
         return mean_score    
     
-    mean_score = mean_asymmetry(mask)
-    worst_asymmetry = np.max(rotation_asymmetry(mask, 30))
+    #worst_asymmetry = np.max(rotation_asymmetry(mask, 30))
 
-    return mean_score, worst_asymmetry #check for both worst and mean and see which one works better maybe??
+    return mean_asymmetry(mask)  #check for both worst and mean and see which one works better maybe??
 
-#little test
-'''import os
-imgDir = os.path.abspath(os.path.join(os.getcwd(), os.pardir, "data"))
-mask_path = os.path.join(imgDir,"maskTest","mask1.png")
-img = 0
-print(fA_extractor(img,mask_path))'''
+mask_path = r"..\data\MaskImagePair\PAT_76_1039_269_mask.png"
+mask_image = Image.open(mask_path).convert("L")
+mask_array = np.array(mask_image)
+
+print(fA_extractor(mask_array))
