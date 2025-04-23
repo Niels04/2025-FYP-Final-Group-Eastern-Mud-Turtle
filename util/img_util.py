@@ -59,7 +59,7 @@ class ImageDataLoader:
     :param img_directory: The file path to the folder containing the images
     :param mask_directory: The file path to the folder containing the images
     
-    :return: img_rgb, img_gray, mask, name when iterated through.
+    :yield:s img_rgb, img_gray, mask, name when iterated through.
     
     """
     def __init__(self, img_directory, mask_directory, transform=None):
