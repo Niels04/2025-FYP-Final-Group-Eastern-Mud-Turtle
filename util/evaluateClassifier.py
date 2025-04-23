@@ -14,13 +14,14 @@ class Performance:
     of a method on either test or validation/test data.
     """
     def __init__(self, ACCs: pd.DataFrame, RECs: pd.DataFrame, AUCs: pd.DataFrame, meanAcc:float, varAcc:float, meanRecall:float, varRecall:float, meanAUC:float, varAUC:float):
+        #save means and variances (so they don't have to be computed each time we want to access them)
         self.meanAcc = meanAcc
         self.varAcc = varAcc
         self.meanRecall = meanRecall
         self.varRecall = varRecall
         self.meanAUC = meanAUC
         self.varAUC = varAUC
-        #necessary to save actual performances for later boxplot generation
+        #save actual performances for later boxplot generation
         self.ACCs = ACCs
         self.RECs = RECs
         self.AUCs = AUCs
@@ -125,6 +126,9 @@ class Evaluator:
         #      shuffles FOR THE VALIDATION DATA
     
     def printPerformances(self) -> None:
+        """Print mean and variance of Accuracy, Recall and AUC for all methods to console.\n
+        (for both training and validation runs)
+        """
         for name, perf in self.performances.items():
             print(f"Performance for method \"{name}\"")
             print("On training data:")
@@ -191,8 +195,6 @@ class Evaluator:
         plt.tight_layout()
         plt.savefig(f"../result/classifier_performance_boxplot_{metric}.png", dpi=300)
         plt.close()
-
-
 #end of Evaluator class
 
 def read(file):
@@ -214,52 +216,6 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
     yTest = y.iloc[testIdx]
     return xTrain, yTrain, xTest, yTest
 
-# #FOR NOW: just read the metadata file, group by patient id and test some classifiers
-
-# metadataFile="../data/metadata.csv"
-
-# df=read(metadataFile)
-# #Just for the metadata, dropping not usable data, turning boolean values to 0-1, and making the str-values to numeric values
-# df=df.drop(axis=1,labels=['diameter_1','diameter_2','lesion_id','smoke','drink','background_father','background_mother','pesticide','gender','skin_cancer_history','cancer_history','has_piped_water','has_sewage_system','fitspatrick','img_id'])
-# df['itch'] = df['itch'].astype(bool).astype(int)
-# df['grew'] = df['grew'].astype(bool).astype(int)
-# df['hurt'] = df['hurt'].astype(bool).astype(int)
-# df['changed'] = df['changed'].astype(bool).astype(int)
-# df['bleed'] = df['bleed'].astype(bool).astype(int)
-# df['elevation'] = df['elevation'].astype(bool).astype(int)
-# df['biopsed'] = df['biopsed'].astype(bool).astype(int)
-# df = pd.get_dummies(df, columns=['region'],dtype=int)
-
-# #EXAMPLE USAGE OF THE EVALUATOR CLASS
-
-# #prepare necessary input:
-# #X_train, y_train & patientGroup of training/working data
-# y = (df['diagnostic'] == "MEL")#obtain true label column and set it to 0 for non-melanoma and 1 for melanoma
-# X = df.drop(['diagnostic'], axis=1)#obtain X-data by dropping true label -> BUT it still contains the patient_id because it needs to be part of the split
-# X_train, y_train, X_test, y_test = split_data(X, y, groupName="patient_id")
-# patientGroup=X_train["patient_id"]#obtain grouping column for training/working data (grouping by patient_id) (NOT over the whole dataset but only over the training data)
-# X_train = X_train.drop(["patient_id"], axis=1)#get rid of patient_id in training/working X-data
-# X_test = X_test.drop(["patient_id"], axis=1)#get rid of patient_id in test X-data
-
-# #test different classifiers on the training/working data:
-# clf1 = RandomForestClassifier()
-# clf2 = DecisionTreeClassifier()
-# clf3 = KNeighborsClassifier()
-
-# voting_clf = VotingClassifier(estimators=[
-#     ('rf', clf1), 
-#     ('dt', clf2), 
-#     ('knn', clf3)
-#     ], voting='soft') # or voting='hard'
-
-# eval = Evaluator()
-# eval.evalClassifier(clf1, "RandomForest", X_train, y_train, patientGroup, threshold=0.5)
-# eval.evalClassifier(clf2, "DecisionTree", X_train, y_train, patientGroup, threshold=0.5, saveCurveROC=True)
-# eval.evalClassifier(clf3, "KNN", X_train, y_train, patientGroup, threshold=0.5)
-# eval.evalClassifier(voting_clf, "Voting", X_train, y_train, patientGroup, threshold=0.5)
-# eval.printPerformances()
-# eval.makeBoxplot("recall")
-
 #NOTE: We could try other stuff here like different parameters for K in KNN
 #      or different max_depth for Tree or Forest and compare the performances.
 #      Also we could try shrinking the training data and seeing if we can still
@@ -271,10 +227,10 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
 #For the normal data
 featureFile = "../data/features.csv"
 df=read(featureFile)
-df=df.drop(axis=1,labels=["img_id", "patient_id", "lesion_id"])
-y = df['true_melanoma_label']#obtain melanoma binary label as y-data
+df=df.drop(axis=1,labels=["img_id", "patient_id", "lesion_id"])#drop unnecessary columns
+y = df['true_melanoma_label']#obtain melanoma binary label-column as y-data
 X = df.drop(['true_melanoma_label'], axis=1)#drop melanoma binary label to only leave x-data (also leaves pat_les_id for later grouping)
-xTrain, yTrain, xTest, yTest = split_data(X, y, "pat_les_ID")#split
+xTrain, yTrain, xTest, yTest = split_data(X, y, "pat_les_ID")#split grouping by lesion
 patientGroup=xTrain["pat_les_ID"]#obtain grouping column for training/working data (grouping by patient_id) (NOT over the whole dataset but only over the training data)
 xTrain = xTrain.drop(["pat_les_ID"], axis=1)#get rid of patient_id in training/working X-data
 xTest = xTest.drop(["pat_les_ID"], axis=1)#get rid of patient_id in test X-data
@@ -289,7 +245,7 @@ voting_clf = VotingClassifier(estimators=[
     ('rf', clf1), 
     ('dt', clf2), 
     ('knn', clf3)
-    ], voting='soft') # or voting='hard'
+    ], voting='soft')#voting="hard" produces an error in AUC calculation, so don't use it for now
 
 eval = Evaluator()
 eval.evalClassifier(clf1, "RandomForest", xTrain, yTrain, patientGroup, threshold=0.5)
@@ -300,13 +256,3 @@ eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, t
 eval.printPerformances()
 eval.makeBoxplot("AUC")
 eval.makeBoxplot("recall")
-
-# gss=GroupShuffleSplit(n_splits=1,test_size=0.2, random_state=42)
-# train_ind,test_ind = next(gss.split(X,y,groups=patient_group))
-# X_train_gss, X_test_gss = X[train_idx], X[test_idx]
-# y_train_gss, y_test_gss = y[train_idx], y[test_idx]
-# train_ind_2,test_ind_2 = next(gss.split(X_train_gss,y_train_gss,groups=patient_group))
-# X_train_gss_2, X_test_gss_2 = X[train_idx_2], X[test_idx_2]
-# y_train_gss_2, y_test_gss_2 = y[train_idx_2], y[test_idx_2]
-# model(X_train, y_train, X_test, y_test)
-# model(X_train_gss_2, y_train_gss_2, X_test_gss_2, y_test_gss_2)
