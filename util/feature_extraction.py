@@ -1,11 +1,11 @@
-from img_util import ImageDataLoader as IDL
-from inpaint_util import removeHair as rH
 from tqdm import tqdm
-from feature_A import fA_extractor
-from feature_B import fB_extractor
-from feature_C import fC_extractor
-from feature_BV import fBV_extractor
-from feature_cheese import fCHEESE_extractor
+from .img_util import ImageDataLoader as IDL
+from .inpaint_util import removeHair as rH
+from .feature_A import fA_extractor
+from .feature_B import fB_extractor
+from .feature_C import fC_extractor
+from .feature_BV import fBV_extractor
+from .feature_cheese import fCHEESE_extractor
 import pandas as pd
 
 

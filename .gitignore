@@ -11,6 +11,7 @@ __pycache__/
 /data/lesion_imgs/*.png
 /data/lesion_masks/*.png
 /result/*.png
+/result/*.csv
 .Python
 build/
 develop-eggs/
