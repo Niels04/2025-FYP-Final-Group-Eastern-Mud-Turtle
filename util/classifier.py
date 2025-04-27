@@ -289,10 +289,10 @@ def main():
     xTest = xTest.drop(["pat_les_ID"], axis=1)#get rid of pat_les_id in test X-data
 
     #test different classifiers on the training/working data:
-    clf1 = RandomForestClassifier(class_weight="balanced",max_depth=4)
-    clf2 = DecisionTreeClassifier(class_weight="balanced",max_depth=5)
-    clf3 = KNeighborsClassifier(weights='distance',n_neighbors=1,p=2)
-    clf4 = LogisticRegression(class_weight="balanced")
+    clf1 = RandomForestClassifier(class_weight="balanced",max_depth=2)
+    clf2 = DecisionTreeClassifier(class_weight="balanced",max_depth=2)
+    clf3 = KNeighborsClassifier(weights='distance',n_neighbors=1,algorithm='brute')
+    clf4 = LogisticRegression(class_weight="balanced",max_iter=100000)
 
     voting_clf = VotingClassifier(estimators=[
         ('rf', clf1), 
@@ -314,3 +314,22 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#Gergely's note
+''' Randomforest:There is no point of inrceasing the max depth, the opposite, the lower the number the better.
+            Currently the best is depth of 2
+    DecisionTree: Similar to the Randomforest
+    KNN: Because of the small amount of MEL pictures, using KNN is a catastrophy. Only produces minimal 'good' results if k=1 
+            (Most of the data point are non-MEL that means if we look at the neighbor there is a higher chance of finding non-MEL.)
+    Logistic:Increasing the iteration, increases both the accuracy and recall on avg!
+            (There is no point increasing it over 100_000)
+    Features:
+    A: More stability
+    B: More variaty
+    C: chaotic, not consistent, huge variaty
+    AB:  We get an avg: recall 0.5 and accuarcy 0.6
+    BC:  We get an avg: recall 0.3 and accuarcy 0.6
+    AC:  We get an avg: recall 0.6 and accuarcy 0.6
+    ABC: We get an avg: recall 0.6 and accuarcy 0.6
+    [based on the voting]
+    '''
