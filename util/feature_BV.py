@@ -23,6 +23,12 @@ def fBV_extractor(image, mask) -> float:
 
     # make the mask 3D
     mask_3D = mask[:, :, np.newaxis]
+    
+    # resize the image to make SURE it matches with the mask
+    mask_height = mask_3D.shape[0]
+    mask_width = mask_3D.shape[1]
+
+    image_hsv = cv2.resize(image_hsv, (mask_width, mask_height))
 
     # apply mask
     image_hsv = image_hsv * mask_3D

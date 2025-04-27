@@ -26,7 +26,7 @@ def cut_im_by_mask(image, mask):
 
     return cut_image
 
-def feature_snowflake(image, mask,threshold=735) -> float:
+def fSNOWFLAKE_extractor(image, mask,threshold=735) -> float:
     #checks if the image has a white-ish color
     cutten_img=cut_im_by_mask(image,mask)
     flat_im = np.reshape(cutten_img, (-1, 3))
