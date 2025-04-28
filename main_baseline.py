@@ -1,9 +1,14 @@
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from pathlib import Path
 
 from util.feature_extraction import extract
 from util.classifier import split_data, runClassifier
+
+_PROJ_DIR = Path(__file__).resolve().parent#obtain project directory
+_DATA_DIR = _PROJ_DIR / "data"#obtain data directory
+_RESULT_DIR = _PROJ_DIR / "result"#obtain results directory
 
 #RUN the baseline model 
 
@@ -54,6 +59,6 @@ if __name__ == "__main__":
     testMaskDir = None#path to mask directory for test images (optional, if None, assumed to be equal to testImgDir)
     metadataPath = None#path to metadata.csv file for the test images (optional, needed to evaluate performance based on true label)
 
-    trainCSV = "data/features.csv"#path to trainingData csv (features extracted by our method)
-    resultCSV = "result/result_baseline.csv"#path where result csv will be saved
+    trainCSV = str(_DATA_DIR / "features.csv")#path to trainingData csv (features extracted by our method)
+    resultCSV = str(_RESULT_DIR / "result_baseline.csv")#path where result csv will be saved
     main(trainCSV, resultCSV, testImgDir, testMaskDir, metadataPath)

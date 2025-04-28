@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
@@ -7,12 +8,15 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score, recall_score, roc_auc_score, roc_curve, confusion_matrix
-from sklearn.metrics import ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
+
+_FILE_DIR = Path(__file__).resolve().parent#obtain directory of this file
+_PROJ_DIR = _FILE_DIR.parent#obtain main project directory
+_RESULT_DIR = _PROJ_DIR / "result"#obtain results directory
 
 class Performance:
     """Class to store performance metrics
-    of a method on either test or validation/test data.
+    of a method on either training or validation/test data.
     """
     def __init__(self, ACCs: pd.DataFrame, RECs: pd.DataFrame, AUCs: pd.DataFrame, meanAcc:float, varAcc:float, meanRecall:float, varRecall:float, meanAUC:float, varAUC:float):
         #save means and variances (so they don't have to be computed each time we want to access them)
@@ -71,7 +75,7 @@ def makeGraphROC(name:str, yLabels: pd.DataFrame, yPredictedProbs: pd.DataFrame,
         plt.grid(True)
 
         #save to png
-        plt.savefig(f"../result/roc_curve_{name}.png", dpi=300, bbox_inches="tight")
+        plt.savefig(str(_RESULT_DIR / f"roc_curve_{name}.png"), dpi=300, bbox_inches="tight")
         plt.close()#frees up the memory
 
 def makeConfusionMatrix(name:str, yLabels: pd.DataFrame, yPredictions: pd.DataFrame, dataType:str, combined = 1) -> None:
@@ -83,17 +87,13 @@ def makeConfusionMatrix(name:str, yLabels: pd.DataFrame, yPredictions: pd.DataFr
         :param dataType: specify if input data was training/validation/test data
         :param combined: specify how many runs/shuffles of the method were used to obtain the predictions (used for average calculation)
         :return None:"""
-        # confMat = ConfusionMatrixDisplay.from_predictions(yLabels, yPredictions)
-        # plt.savefig(f"../result/confusion_matrix_{name}.png", dpi=300, bbox_inches="tight")
-        # plt.close()
 
         confMat = confusion_matrix(yLabels, yPredictions)
         colors = [["lightgreen", "lightcoral"], ["lightcoral", "lightgreen"]]#colors to be used for the confusion matrix
 
         #plot the confusion matrix
         fig, axes = plt.subplots(figsize=(6,6))
-        #im = axes.imshow(confMat, cmap="Greys")
-        # Set the labels for axes
+        #set the labels for axes
         axes.set_xlabel("Predicted Labels")
         axes.set_ylabel("True Labels")
         axes.set_title(f"Confusion Matrix for \"{name}\" on {dataType} data", fontweight='bold', fontsize=16)
@@ -104,26 +104,25 @@ def makeConfusionMatrix(name:str, yLabels: pd.DataFrame, yPredictions: pd.DataFr
         axes.set_xticklabels(classes)
         axes.set_yticklabels(classes)
         axes.tick_params(left=False, bottom=False)#don't display the little tick lines
-        #plt.setp(axes.get_xticklabels(), ha="right", rotation_mode="anchor")
         labels = [["True Negative", "False Positive"], ["False Negative", "True Positive"]]
 
         for i in range(2):
             for j in range(2):
-                # Draw the background rectangle
+                #draw the background rectangle
                 rect = plt.Rectangle((j, i), 1, 1, facecolor=colors[i][j], edgecolor='black', linewidth=2)
                 axes.add_patch(rect)
 
-                # Add text
-                axes.text(j+0.5, i+0.5, f"{labels[i][j]}\n{confMat[i][j]/combined}",#divedes the number from the confusion matrix by the number of runs/shuffles to normalize
+                #add text
+                axes.text(j+0.5, i+0.5, f"{labels[i][j]}\n{confMat[i][j]/combined}",#divides the number from the confusion matrix by the number of runs/shuffles to normalize
                     ha="center", va="center", color="black", fontsize=10, fontweight="bold")
                 
-        # Fix the axes so that 0,0 is at top-left and 2,2 is bottom-right
+        #fix the axes so that 0,0 is at top-left and 2,2 is bottom-right
         axes.set_xlim(0, 2)
         axes.set_ylim(2, 0)
         axes.set_aspect("equal")
 
         plt.tight_layout()
-        plt.savefig(f"../result/confusion_matrix_{name}.png", dpi=300, bbox_inches="tight")
+        plt.savefig(str(_RESULT_DIR / f"confusion_matrix_{name}.png"), dpi=300, bbox_inches="tight")
         plt.close()
 
 
@@ -172,6 +171,8 @@ def runClassifier(classifier, methodName:str, threshold:float, xTrain:pd.DataFra
 
         #output ROC curve:
         makeGraphROC(methodName, yTest, yProbs, "test", combined=False)
+        #output Confusion matrix:
+        makeConfusionMatrix(methodName, yTest, yPred, "test")
 
     return result
 
@@ -306,7 +307,7 @@ class Evaluator:
 
         #save plot
         plt.tight_layout()
-        plt.savefig(f"../result/classifier_performance_boxplot_{metric}.png", dpi=300)
+        plt.savefig(str(_RESULT_DIR / f"classifier_performance_boxplot_{metric}.png"), dpi=300)
         plt.close()
 #end of Evaluator class
 
@@ -338,7 +339,7 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
 #      whether one method is better than the other at some confidence level.
 
 def main():
-    featureFile = "../data/features.csv"
+    featureFile = str(_PROJ_DIR / "data/features.csv")
     df=read(featureFile)
     df=df.drop(axis=1,labels=["img_id", "patient_id", "lesion_id"])#drop unnecessary columns
     y = df['true_melanoma_label']#obtain melanoma binary label-column as y-data

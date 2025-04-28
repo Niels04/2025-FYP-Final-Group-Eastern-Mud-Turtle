@@ -1,4 +1,17 @@
 from tqdm import tqdm
+import pandas as pd
+from pathlib import Path
+
+#_________When importing from main_baseline.py the imports have to be changed like this____________
+# from util.img_util import ImageDataLoader as IDL
+# from util.inpaint_util import removeHair as rH
+# from util.feature_A import fA_extractor
+# from util.feature_B import fB_extractor
+# from util.feature_C import fC_extractor
+# from util.feature_BV import fBV_extractor
+# from util.feature_cheese import fCHEESE_extractor as fCH_extractor
+# from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
+
 from img_util import ImageDataLoader as IDL
 from inpaint_util import removeHair as rH
 from feature_A import fA_extractor
@@ -7,14 +20,14 @@ from feature_C import fC_extractor
 from feature_BV import fBV_extractor
 from feature_cheese import fCHEESE_extractor as fCH_extractor
 from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
-import pandas as pd
 
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"#obtain data directory
 
 # set up relevant directories
-img_dir = '../data/lesion_imgs/'
-mask_dir = '../data/lesion_masks/'
-metadata_dir = "../data/metadata.csv"
-features_dir = "../data/features.csv"
+img_dir = str(_DATA_DIR / "lesion_imgs/")
+mask_dir = str(_DATA_DIR / "lesion_masks/")
+metadata_dir = str(_DATA_DIR / "metadata.csv")
+features_dir = str(_DATA_DIR / "features.csv")
 
 def normalizeMinMax(column:pd.Series) -> pd.Series:
     #min and max from the column
@@ -140,4 +153,5 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
     return cd
 
-extract(img_dir, mask_dir, metadata_dir, features_dir, base_model= False)
+if __name__ == "__main__":
+    extract(img_dir, mask_dir, metadata_dir, features_dir, base_model= False)
