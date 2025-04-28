@@ -6,7 +6,8 @@ from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, accuracy_score, recall_score, roc_auc_score, roc_curve
+from sklearn.metrics import classification_report, accuracy_score, recall_score, roc_auc_score, roc_curve, confusion_matrix
+from sklearn.metrics import ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 
 class Performance:
@@ -57,21 +58,74 @@ def makeGraphROC(name:str, yLabels: pd.DataFrame, yPredictedProbs: pd.DataFrame,
         AUCscore = roc_auc_score(yLabels, yPredictedProbs)
 
         plt.figure(figsize=(8, 6))
-        plt.plot(fPosRate, tPosRate, label=f'AUC = {AUCscore:.2f}', linewidth=2)
-        plt.plot([0, 1], [0, 1], 'k--', label='Random Guess')#display random guess middle line
+        plt.plot(fPosRate, tPosRate, label=f"AUC = {AUCscore:.2f}", linewidth=2)
+        plt.plot([0, 1], [0, 1], 'k--', label="Random Guess")#display random guess middle line
 
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
+        plt.xlabel("False Positive Rate")
+        plt.ylabel("True Positive Rate")
         if combined:
-            plt.title(f'Combined ROC Curve for method \"{name}\" on {dataType} data')
+            plt.title(f"Combined ROC Curve for method \"{name}\" on {dataType} data")
         else:
-             plt.title(f'ROC Curve for method \"{name}\" on {dataType} data')
-        plt.legend(loc='lower right')
+             plt.title(f"ROC Curve for method \"{name}\" on {dataType} data")
+        plt.legend(loc="lower right")
         plt.grid(True)
 
         #save to png
-        plt.savefig(f"result/roc_curve_{name}.png", dpi=300, bbox_inches='tight')
+        plt.savefig(f"../result/roc_curve_{name}.png", dpi=300, bbox_inches="tight")
         plt.close()#frees up the memory
+
+def makeConfusionMatrix(name:str, yLabels: pd.DataFrame, yPredictions: pd.DataFrame, dataType:str, combined = 1) -> None:
+        """Creates an Confusion Matrix plot given a column of true yLabels and yPredictions.\n
+        Saves the plotted matrix as .png \"/result/\"with the provided method name as a suffix.\n
+        :param name: name of the method for which the curve is generated
+        :param yLabels: true yLabels
+        :param yPredictions: 0 and 1 Melanoma predictions by the method
+        :param dataType: specify if input data was training/validation/test data
+        :param combined: specify how many runs/shuffles of the method were used to obtain the predictions (used for average calculation)
+        :return None:"""
+        # confMat = ConfusionMatrixDisplay.from_predictions(yLabels, yPredictions)
+        # plt.savefig(f"../result/confusion_matrix_{name}.png", dpi=300, bbox_inches="tight")
+        # plt.close()
+
+        confMat = confusion_matrix(yLabels, yPredictions)
+        colors = [["lightgreen", "lightcoral"], ["lightcoral", "lightgreen"]]#colors to be used for the confusion matrix
+
+        #plot the confusion matrix
+        fig, axes = plt.subplots(figsize=(6,6))
+        #im = axes.imshow(confMat, cmap="Greys")
+        # Set the labels for axes
+        axes.set_xlabel("Predicted Labels")
+        axes.set_ylabel("True Labels")
+        axes.set_title(f"Confusion Matrix for \"{name}\" on {dataType} data", fontweight='bold', fontsize=16)
+
+        classes = ["Non Melanoma", "Melanoma"]
+        axes.set_xticks(np.arange(len(classes)) + 0.5)
+        axes.set_yticks(np.arange(len(classes)) + 0.5)
+        axes.set_xticklabels(classes)
+        axes.set_yticklabels(classes)
+        axes.tick_params(left=False, bottom=False)#don't display the little tick lines
+        #plt.setp(axes.get_xticklabels(), ha="right", rotation_mode="anchor")
+        labels = [["True Negative", "False Positive"], ["False Negative", "True Positive"]]
+
+        for i in range(2):
+            for j in range(2):
+                # Draw the background rectangle
+                rect = plt.Rectangle((j, i), 1, 1, facecolor=colors[i][j], edgecolor='black', linewidth=2)
+                axes.add_patch(rect)
+
+                # Add text
+                axes.text(j+0.5, i+0.5, f"{labels[i][j]}\n{confMat[i][j]/combined}",#divedes the number from the confusion matrix by the number of runs/shuffles to normalize
+                    ha="center", va="center", color="black", fontsize=10, fontweight="bold")
+                
+        # Fix the axes so that 0,0 is at top-left and 2,2 is bottom-right
+        axes.set_xlim(0, 2)
+        axes.set_ylim(2, 0)
+        axes.set_aspect("equal")
+
+        plt.tight_layout()
+        plt.savefig(f"../result/confusion_matrix_{name}.png", dpi=300, bbox_inches="tight")
+        plt.close()
+
 
 def runClassifier(classifier, methodName:str, threshold:float, xTrain:pd.DataFrame, yTrain:pd.DataFrame, xTest:pd.DataFrame, yTest:pd.DataFrame = None) -> pd.DataFrame:
     """Given training data and test data, perform a single run of the provided classifier\n
@@ -136,7 +190,7 @@ class Evaluator:
     #      To be added:
     #       - method that evaluates performance with test data (only use at end) -> could use for hypothesis testing
     #       - 
-    def evalClassifier(self, classifier, name:str, xTrain:pd.DataFrame, yTrain:pd.DataFrame, patientGroups:pd.DataFrame, threshold:float, nShuffles = 20, validationSize=0.2, saveCurveROC = False):
+    def evalClassifier(self, classifier, name:str, xTrain:pd.DataFrame, yTrain:pd.DataFrame, patientGroups:pd.DataFrame, threshold:float, nShuffles = 20, validationSize=0.2, saveCurveROC = False, saveConfusionMatrix = False):
         """Given the classifier, computes AUC(accuracy) and
         recall (TP/(TP+FN)) over given number of grouped
         shuffles of the given training/validation data, grouped by the
@@ -152,6 +206,8 @@ class Evaluator:
         :param threshold: Decision Threshold from 0 to 1 (0.4 means that everything with probability of melanoma > 0.4 will be classified as melanoma)
         :param nShuffles: Number of different shuffled folds to perform, default=20
         :param validationSize: Proportion of training/working data to be used as validation Data, default=0.2
+        :param saveCurveROC: If True, a combined ROC curve for this method(on the valdiation data) will be saved as .png in /result
+        :param saveConfusionMatrix: If True, a confusion matrix for this method(on the validation data) will be saved as .png in /result
         :return None:"""
         ACCsTrain = np.zeros(nShuffles)#array to store accuracy scores for training data
         RECsTrain = np.zeros(nShuffles)#array to store recall scores for training data
@@ -184,9 +240,9 @@ class Evaluator:
             
             #test on validation data for current split--------------
             yProbs = classifier.predict_proba(xTrain.iloc[valIdx])[:, 1]#predict melanoma probability for evaluation data
-            if saveCurveROC:
-                allYPredictionProbs.extend(yProbs)#save prediction probabilities for current shuffle for combined ROC curve computation
-                allYLabels.extend(yTrain.iloc[valIdx])#save true labels for current shuffle for combined ROC curve computation
+            if saveCurveROC | saveConfusionMatrix:
+                allYPredictionProbs.extend(yProbs)#save prediction probabilities for current shuffle for combined ROC curve computation/confusion matrix
+                allYLabels.extend(yTrain.iloc[valIdx])#save true labels for current shuffle for combined ROC curve computation/confusion matrix
             #calculate AUC for current shuffle using the prediction probabilities
             AUCsVal[i] = roc_auc_score(yTrain.iloc[valIdx], yProbs)
             #turn predicted probabilities into binary predictions using the given decision threshold
@@ -203,6 +259,10 @@ class Evaluator:
             makeGraphROC(name, allYLabels, allYPredictionProbs, dataType="validation")
         #NOTE: "Combined" means that the ROC curve is computed based on the predicted probabilities over all of the random grouped
         #      shuffles FOR THE VALIDATION DATA
+        if saveConfusionMatrix:#compute a combined confusion matrix (over all shuffles) and save as .png
+            allYPredictionProbsNP = np.array(allYPredictionProbs)
+            allYPred = (allYPredictionProbsNP > threshold)#turn probabilities into 0 and 1 classifications with threshold
+            makeConfusionMatrix(name, allYLabels, allYPred, dataType="validation", combined=nShuffles)
     
     def printPerformances(self) -> None:
         """Print mean and variance of Accuracy, Recall and AUC for all methods to console.\n
@@ -246,7 +306,7 @@ class Evaluator:
 
         #save plot
         plt.tight_layout()
-        plt.savefig(f"result/classifier_performance_boxplot_{metric}.png", dpi=300)
+        plt.savefig(f"../result/classifier_performance_boxplot_{metric}.png", dpi=300)
         plt.close()
 #end of Evaluator class
 
@@ -278,7 +338,7 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
 #      whether one method is better than the other at some confidence level.
 
 def main():
-    featureFile = "data/features.csv"
+    featureFile = "../data/features.csv"
     df=read(featureFile)
     df=df.drop(axis=1,labels=["img_id", "patient_id", "lesion_id"])#drop unnecessary columns
     y = df['true_melanoma_label']#obtain melanoma binary label-column as y-data
@@ -306,7 +366,7 @@ def main():
     eval.evalClassifier(clf2, "DecisionTree", xTrain, yTrain, patientGroup, threshold=0.5, saveCurveROC=True)
     eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5)
     eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.5)
-    eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5)
+    eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveConfusionMatrix=True)
     eval.printPerformances()
     eval.makeBoxplot("AUC")
     eval.makeBoxplot("recall")

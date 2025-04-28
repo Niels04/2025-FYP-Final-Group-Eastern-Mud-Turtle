@@ -13,14 +13,12 @@ def main(csvPath:str, savePath:str, testImgDir:str, testMaskDir:str, testMetadat
     datasetY = datasetDf['true_melanoma_label']#obtain melanoma binary label-column as y-data
     datasetX = datasetDf.drop("true_melanoma_label", axis=1)#drop melanoma label -> obtain X-data
     xTrain, yTrain, xTest, yTest = split_data(datasetX, datasetY, "pat_les_ID")#split grouping by lesion
-    #xTrain = xTrain.drop(axis=1, labels=["pat_les_ID", "img_id"])#get rid of pat_les_id & img_id in training x data
-    #xTest = xTest.drop(["pat_les_ID"], axis=1)#get rid of pat_les_id in test x data (BUT keeps img_id in test for later result output)
 
     #obtain test data if testImgDir is provided
     if testImgDir is not None:
         #extract the features from the test images and return them without saving to file
-        testData = extract(testImgDir, testMaskDir, testMetadataPath, feature_dir=None, base_model=True)#could also get rid of base_model=True
-        testData.drop(axis=1, labels=["img_id", "patient_id", "lesion_id"])#drop unnecessary columns
+        testData = extract(testImgDir, testMaskDir, testMetadataPath, feature_dir=None, base_model=True)#could also get rid of base_model=True since we select the correct features anyways
+        testData.drop(axis=1, labels=["patient_id", "lesion_id"])#drop unnecessary columns BUT keep img_id for later result output
         if testMetadataPath != None:
             #obtain true labels for testData if available
             yTest = testData["true_melanoma_label"]
