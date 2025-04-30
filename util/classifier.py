@@ -232,7 +232,10 @@ class Evaluator:
             #test on training data for current split---------------
             yProbs = classifier.predict_proba(xTrain.iloc[trainIdx])[:, 1]#predict melanoma probability for training data
             #calculate AUC for current shuffle using the prediction probabilities
-            AUCsTrain[i] = roc_auc_score(yTrain.iloc[trainIdx], yProbs)
+            try:
+                AUCsTrain[i] = roc_auc_score(yTrain.iloc[trainIdx], yProbs)
+            except:
+                print("This error can occurr by chance if a random shuffle of the test data doesn't contain any Melanoma.\n Just try again :)")
             #turn predicted probabilities into binary predictions using the given decision threshold
             yPred = (yProbs >= threshold).astype(int)
             #compute accuracy and recall for the given decision threshold
