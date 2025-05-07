@@ -344,7 +344,7 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
 def main():
     featureFile = str(_PROJ_DIR / "data/features.csv")
     df=read(featureFile)
-    df=df.drop(axis=1,labels=["img_id", "patient_id", "lesion_id"])#drop unnecessary columns
+    df=df.drop(axis=1,labels=["id", "patient_id", "lesion_id"])#drop unnecessary columns
     y = df['true_melanoma_label']#obtain melanoma binary label-column as y-data
     X = df.drop(['true_melanoma_label'], axis=1)#drop melanoma binary label to only leave x-data (also leaves pat_les_id for later grouping)
     xTrain, yTrain, xTest, yTest = split_data(X, y, "pat_les_ID")#split grouping by lesion
@@ -353,11 +353,17 @@ def main():
     xTest = xTest.drop(["pat_les_ID"], axis=1)#get rid of pat_les_id in test X-data
 
     #test different classifiers on the training/working data:
-    clf1 = RandomForestClassifier(class_weight="balanced",max_depth=2)
-    clf2 = DecisionTreeClassifier(class_weight="balanced",max_depth=2)
+    clf1 = RandomForestClassifier(class_weight="balanced",max_depth=5) #for the base max_depth 2
+    clf2 = DecisionTreeClassifier(class_weight="balanced",max_depth=5) #for the base max_depth 2 
     clf3 = KNeighborsClassifier(weights='distance',n_neighbors=1,algorithm='brute')
     clf4 = LogisticRegression(class_weight="balanced",max_iter=100000)
 
+# If we use clf1 maxdepth 1 and clf2 maxdepth 5 accuracy 80°% and recall 50%
+# If we set maxdepth to be more than 10 it just overfit
+# if we set maxdepth to be more than 5 we get high accuracy however the recall is between 20-40%
+# if we set maxdepth to be 3 clf2: accuracy gets not that consistant (between 55-78% avg: 65), however the recall gets 60%
+# if we set maxdepth to be 3 clf1: accuracy 85% and the recall is consistent on avg 40%
+# if we set maxdepth to be 1 clf1: accuracy 80% and the recall is not that consistant on avg 50%
     voting_clf = VotingClassifier(estimators=[
         ('rf', clf1), 
         ('dt', clf2), 
@@ -366,9 +372,9 @@ def main():
         ], voting='soft')#voting="hard" produces an error in AUC calculation, so don't use it for now
 
     eval = Evaluator()
-    eval.evalClassifier(clf1, "RandomForest", xTrain, yTrain, patientGroup, threshold=0.5)
-    eval.evalClassifier(clf2, "DecisionTree", xTrain, yTrain, patientGroup, threshold=0.5, saveCurveROC=True)
-    eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5)
+    eval.evalClassifier(clf1, "RandomForest", xTrain, yTrain, patientGroup, threshold=0.3) # Threshold on 0.3 and maxdepth 5 improves the everyting
+    eval.evalClassifier(clf2, "DecisionTree", xTrain, yTrain, patientGroup, threshold=0.5, saveCurveROC=True) # It doesn't improve it. It just makes it overfit or underfit
+    eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5) #NO use of modifying the threshold  
     eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.5)
     eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveConfusionMatrix=True)
     eval.printPerformances()
@@ -396,4 +402,8 @@ if __name__ == "__main__":
     AC:  We get an avg: recall 0.6 and accuarcy 0.6
     ABC: We get an avg: recall 0.6 and accuarcy 0.6
     [based on the voting]
+    
+    In overall, we can try to modify 3 clf to get something which is relatively accurate OR we just use the Logistic regression, it's consistent and accurate WITHOUT modifing it  
+    
+    
     '''
