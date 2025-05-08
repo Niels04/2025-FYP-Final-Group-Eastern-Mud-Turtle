@@ -1,4 +1,4 @@
-id,patient_id,lesion_id,pat_les_ID,fA_score,fB_score,fC_score,fBV_score,fCH_score,fS_score,true_melanoma_label
+img_id,patient_id,lesion_id,pat_les_ID,fA_score,fB_score,fC_score,fBV_score,fCH_score,fS_score,true_melanoma_label
 PAT_1000_31_620.png,PAT_1000,31,PAT_1000_31,0.35808666666666666,0.49607233687539476,0.2,0.0,0.0,0,0
 PAT_1006_53_385.png,PAT_1006,53,PAT_1006_53,0.7735200000000001,0.39783406546075634,0.2,0.0,0.08333333333333333,0,0
 PAT_1006_53_716.png,PAT_1006,53,PAT_1006_53,0.8081666666666667,0.20966678061846583,0.4,0.0,0.0,0,0

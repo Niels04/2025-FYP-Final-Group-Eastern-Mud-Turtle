@@ -9,6 +9,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score, recall_score, roc_auc_score, roc_curve, confusion_matrix
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+from sklearn.inspection import DecisionBoundaryDisplay
 
 _FILE_DIR = Path(__file__).resolve().parent#obtain directory of this file
 _PROJ_DIR = _FILE_DIR.parent#obtain main project directory
@@ -125,6 +127,8 @@ def makeConfusionMatrix(name:str, yLabels: pd.DataFrame, yPredictions: pd.DataFr
         plt.savefig(str(_RESULT_DIR / f"confusion_matrix_{name}.png"), dpi=300, bbox_inches="tight")
         plt.close()
 
+#def makeDecisionBoundary():
+
 
 def runClassifier(classifier, methodName:str, threshold:float, xTrain:pd.DataFrame, yTrain:pd.DataFrame, xTest:pd.DataFrame, yTest:pd.DataFrame = None) -> pd.DataFrame:
     """Given training data and test data, perform a single run of the provided classifier\n
@@ -175,6 +179,33 @@ def runClassifier(classifier, methodName:str, threshold:float, xTrain:pd.DataFra
         makeConfusionMatrix(methodName, yTest, yPred, "test")
 
     return result
+
+def makeDecisionBoundary(feature1: str, feature2:str, classifier, name:str, xTrain:pd.DataFrame, yTrain:pd.DataFrame, threshold=0.5):
+    classifier.fit(xTrain[[feature1, feature2]], yTrain)#fit classifier with specified two features on training data
+
+    xx, yy = np.meshgrid(np.linspace(0.0, 1.0, 500), np.linspace(0.0, 1.0, 500))
+    grid = np.c_[xx.ravel(), yy.ravel()]
+    # Get predicted probabilities for class 1
+    probs = classifier.predict_proba(grid)[:, 1]
+    yPred = (probs >= threshold).astype(int).reshape(xx.shape)
+
+    plt.figure(figsize=(8, 6))
+    cmap_light = ListedColormap(['#FFBBBB', '#BBFFBB'])
+    cmap_bold = ListedColormap(['#FF0000', '#00AA00'])
+
+    plt.contourf(xx, yy, yPred, cmap=cmap_light, alpha=0.5)
+
+    # Scatter original points
+    scatter = plt.scatter(xTrain[feature1], xTrain[feature2], c=yTrain, cmap=cmap_bold, edgecolor='k', s=40)
+
+    plt.xlabel(feature1)
+    plt.ylabel(feature2)
+    plt.title(f'Decision Boundary {name} (Threshold = {threshold})')
+    plt.legend(*scatter.legend_elements(), title="Class")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(str(_RESULT_DIR / f"decision_boundary_{name}_{round(threshold, 3)}.png"), dpi=300)
+    plt.close()
 
 
 class Evaluator:
@@ -344,7 +375,7 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
 def main():
     featureFile = str(_PROJ_DIR / "data/features.csv")
     df=read(featureFile)
-    df=df.drop(axis=1,labels=["id", "patient_id", "lesion_id"])#drop unnecessary columns
+    df=df.drop(axis=1,labels=["img_id", "patient_id", "lesion_id"])#drop unnecessary columns
     y = df['true_melanoma_label']#obtain melanoma binary label-column as y-data
     X = df.drop(['true_melanoma_label'], axis=1)#drop melanoma binary label to only leave x-data (also leaves pat_les_id for later grouping)
     xTrain, yTrain, xTest, yTest = split_data(X, y, "pat_les_ID")#split grouping by lesion
@@ -353,9 +384,9 @@ def main():
     xTest = xTest.drop(["pat_les_ID"], axis=1)#get rid of pat_les_id in test X-data
 
     #test different classifiers on the training/working data:
-    clf1 = RandomForestClassifier(class_weight="balanced",max_depth=5) #for the base max_depth 2
-    clf2 = DecisionTreeClassifier(class_weight="balanced",max_depth=5) #for the base max_depth 2 
-    clf3 = KNeighborsClassifier(weights='distance',n_neighbors=1,algorithm='brute')
+    clf1 = RandomForestClassifier(class_weight="balanced",max_depth=5) #for the base max_depth 2 and 5 for the extended
+    clf2 = DecisionTreeClassifier(class_weight="balanced",max_depth=5) #for the base max_depth 2 and 5 for the extended
+    #clf3 = KNeighborsClassifier(weights='distance',n_neighbors=1,algorithm='brute')
     clf4 = LogisticRegression(class_weight="balanced",max_iter=100000)
 
 # If we use clf1 maxdepth 1 and clf2 maxdepth 5 accuracy 80°% and recall 50%
@@ -367,16 +398,20 @@ def main():
     voting_clf = VotingClassifier(estimators=[
         ('rf', clf1), 
         ('dt', clf2), 
-        #('knn', clf3),
         ('lr',clf4)
         ], voting='soft')#voting="hard" produces an error in AUC calculation, so don't use it for now
 
     eval = Evaluator()
-    eval.evalClassifier(clf1, "RandomForest", xTrain, yTrain, patientGroup, threshold=0.3) # Threshold on 0.3 and maxdepth 5 improves the everyting
-    eval.evalClassifier(clf2, "DecisionTree", xTrain, yTrain, patientGroup, threshold=0.5, saveCurveROC=True) # It doesn't improve it. It just makes it overfit or underfit
-    eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5) #NO use of modifying the threshold  
-    eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.5)
+    eval.evalClassifier(clf1, "RandomForest", xTrain, yTrain, patientGroup, threshold=0.3) # Threshold on 0.3 and maxdepth 5 improves the everything
+    eval.evalClassifier(clf2, "DecisionTree", xTrain, yTrain, patientGroup, threshold=0.5) # It doesn't improve it. It just makes it overfit or underfit
+    #eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5) #NO use of modifying the threshold  
+    eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.4)
     eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveConfusionMatrix=True)
+    #makeDecisionBoundary("fBV_score", "fA_score", clf4, "Logistic Regression", xTrain, yTrain, threshold=0.3)
+
+    xTrainStripped = xTrain[["fA_score", "fC_score", "fBV_score", "fS_score"]]#only use promising features
+    eval.evalClassifier(clf4, "LogisticRegression_Stripped", xTrainStripped, yTrain, patientGroup, threshold=0.5, saveCurveROC=True, saveConfusionMatrix=True)
+
     eval.printPerformances()
     eval.makeBoxplot("AUC")
     eval.makeBoxplot("recall")
