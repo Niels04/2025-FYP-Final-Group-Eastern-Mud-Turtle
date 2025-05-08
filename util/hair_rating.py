@@ -8,12 +8,9 @@ import os
 import warnings
 warnings.catch_warnings 
 
-
-
-data_path = "../data/annotated_hair"
-
 # the thresholds have been calibrated based on roughly 200 manually annotated hair images, and
-# the code can be found in [FILENAME] 
+# the code can be found in [rH_tuning_n_graphs.ipynb] 
+
 def rate_hair(image, dst= 160, t1= 0.02, t2= 0.118, blur= True):
     """Function that, given an RGB image, extracts the number of pixels that constitute hair,
     computes the ratio of hair to total pixels, then assigns it a label between 0 (virtually no hair),
@@ -21,10 +18,13 @@ def rate_hair(image, dst= 160, t1= 0.02, t2= 0.118, blur= True):
     Returns both the ratio and the label.
     
     :param image: The RGB image to be analyzed.
+    :param dst: Parameter value that indicates the maximum pixel value considered by the function,
+                every instance of a brighter pixel will not be considered hair.
     :param t1: Lower threshold: all ratios smaller than t1 will be labelled as 0.
     :param t2: Higher threshold: ratios between t1 and t2 will be labeled as 1, higher values as 2.
+    :param blur: Boolean value, if set to True, the image will be blurred before being analyzed.
     
-    :return ratio, label:
+    :return ratio, label, Mask:
     
     """
     
