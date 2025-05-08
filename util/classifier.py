@@ -127,8 +127,6 @@ def makeConfusionMatrix(name:str, yLabels: pd.DataFrame, yPredictions: pd.DataFr
         plt.savefig(str(_RESULT_DIR / f"confusion_matrix_{name}.png"), dpi=300, bbox_inches="tight")
         plt.close()
 
-#def makeDecisionBoundary():
-
 
 def runClassifier(classifier, methodName:str, threshold:float, xTrain:pd.DataFrame, yTrain:pd.DataFrame, xTest:pd.DataFrame, yTest:pd.DataFrame = None) -> pd.DataFrame:
     """Given training data and test data, perform a single run of the provided classifier\n
@@ -181,6 +179,17 @@ def runClassifier(classifier, methodName:str, threshold:float, xTrain:pd.DataFra
     return result
 
 def makeDecisionBoundary(feature1: str, feature2:str, classifier, name:str, xTrain:pd.DataFrame, yTrain:pd.DataFrame, threshold=0.5):
+    """Given training data and the names of 2 feature columns, makes a scatterplot of the two features.\n
+    The given classifier is fitted only on these two features and the resulting decision boundary is visualized on the scatterplot.\n
+    :param feature1: name of the column for first feature.
+    :param classifier: name of the column for second feature.
+    :param classifier: classifier which should be fitted and for which the decision boundary should be visualized.
+    :param name: name of the classifier to be displayed on the plot
+    :param xTrain: independent variables of the training data
+    :param yTrain: label column of the training data
+    :param threshold: predicted probabilities above this threshold will be considered as Melanoma
+    :return None:"""
+
     classifier.fit(xTrain[[feature1, feature2]], yTrain)#fit classifier with specified two features on training data
 
     xx, yy = np.meshgrid(np.linspace(0.0, 1.0, 500), np.linspace(0.0, 1.0, 500))
@@ -219,9 +228,6 @@ class Evaluator:
     #      (would be Overfitting by Observer as described in the lecture)
     #      so I think it's super important that we keep "random_state=42" in the split_data the whole time
 
-    #      To be added:
-    #       - method that evaluates performance with test data (only use at end) -> could use for hypothesis testing
-    #       - 
     def evalClassifier(self, classifier, name:str, xTrain:pd.DataFrame, yTrain:pd.DataFrame, patientGroups:pd.DataFrame, threshold:float, nShuffles = 20, validationSize=0.2, saveCurveROC = False, saveConfusionMatrix = False):
         """Given the classifier, computes AUC(accuracy) and
         recall (TP/(TP+FN)) over given number of grouped
@@ -407,10 +413,10 @@ def main():
     #eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5) #NO use of modifying the threshold  
     eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.4)
     eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveConfusionMatrix=True)
-    #makeDecisionBoundary("fBV_score", "fA_score", clf4, "Logistic Regression", xTrain, yTrain, threshold=0.3)
-
+    
     xTrainStripped = xTrain[["fA_score", "fC_score", "fBV_score", "fS_score"]]#only use promising features
     eval.evalClassifier(clf4, "LogisticRegression_Stripped", xTrainStripped, yTrain, patientGroup, threshold=0.5, saveCurveROC=True, saveConfusionMatrix=True)
+    makeDecisionBoundary("fBV_score", "fA_score", clf4, "Logistic Regression", xTrain, yTrain, threshold=0.5)
 
     eval.printPerformances()
     eval.makeBoxplot("AUC")
