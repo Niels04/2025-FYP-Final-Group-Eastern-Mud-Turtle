@@ -8,9 +8,11 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score, recall_score, roc_auc_score, roc_curve, confusion_matrix
+from sklearn.utils import resample
+from sklearn.inspection import DecisionBoundaryDisplay
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
-from sklearn.inspection import DecisionBoundaryDisplay
 
 _FILE_DIR = Path(__file__).resolve().parent#obtain directory of this file
 _PROJ_DIR = _FILE_DIR.parent#obtain main project directory
@@ -127,12 +129,74 @@ def makeConfusionMatrix(name:str, yLabels: pd.DataFrame, yPredictions: pd.DataFr
         plt.savefig(str(_RESULT_DIR / f"confusion_matrix_{name}.png"), dpi=300, bbox_inches="tight")
         plt.close()
 
+def printCrossValidationPerformance(name:str, data) -> None:
+    """Given a name string and a data column, prints mean, standard deviation, 2.5th and 97.5th percentile.\n
+    :param name: name of the data column
+    :param data: data column as numpy array
+    :return None:"""
+    mean = np.mean(data)
+    std = np.std(data)
+    ci_lower = np.percentile(data, 2.5)
+    ci_upper = np.percentile(data, 97.5)
+    
+    print(f"{name}:")
+    print(f"\tMean: {mean:.4f}")
+    print(f"\tStd Dev: {std:.4f}")
+    print(f"\t95% CI: [{ci_lower:.4f}, {ci_upper:.4f}]")
+
+def finalCrossValidateClassifier(classifier, methodName:str, threshold:float, xTest:pd.DataFrame, yTest:pd.DataFrame, nStraps = 20) -> None:
+    """Given a classifier, threshold and held-out test dataset, performs a cross validation via bootstrapping\n
+    on the held-out test dataset to estimate performance metrics and variances for our method.\n
+    :param classifier: classifier to cross-validate
+    :param methodName: method name, e.g. \"base\" or \"extended\"
+    :param threshold: decision threshold for the classifier
+    :param xTest: test x data (features)
+    :param yTest: y labels for test data, used to calculate performance metrics
+    :return None:"""
+    #store performances for individual straps
+    AUCs = np.zeros(nStraps)#array to store AUC scores
+    ACCs = np.zeros(nStraps)#array to store accuracy scores
+    RECs = np.zeros(nStraps)#array to store recall scores
+    #store all true labels and prediction probabilities for calculation of combined ROC curve at the end
+    allYLabels = []
+    allYPredictionProbs = []
+
+    for i in range(nStraps):
+        x, y = resample(xTest, yTest)#generate a bootstrap by resampling from the test data WITH REPLACEMENT
+        yProbs = classifier.predict_proba(x)[:, 1]#get predicted probabilities from model
+        #calculate performance metrics for current strap:
+        #calculate AUC for current strap using the prediction probabilities
+        try:
+            AUCs[i] = roc_auc_score(y, yProbs)
+        except:
+            print("This error can occurr by chance if a random strap of the test data doesn't contain any Melanoma.\n Just try again :)")
+        #compute accuracy and recall for current strap
+        yPred = (yProbs >= threshold).astype(int)#turn prediction probabilities into binary classifications using the threshold
+        ACCs[i] = accuracy_score(y, yPred)
+        RECs[i] = recall_score(y, yPred)
+        #save prediction probabilites and true labels for combined ROC curve & confusion matrix
+        allYPredictionProbs.extend(yProbs)#save prediction probabilities for current strap
+        allYLabels.extend(y)#save true labels for current strap
+
+    #compute a combined ROC curve that takes into account predictions over all shuffles and save it to .png
+    makeGraphROC(methodName, allYLabels, allYPredictionProbs, dataType="test")
+        #NOTE: "Combined" means that the ROC curve is computed based on the predicted probabilities over all of the random bootstraps
+    allYPredictionProbsNP = np.array(allYPredictionProbs)#convert to np array
+    allYPred = (allYPredictionProbsNP > threshold)#turn probabilities into 0 and 1 classifications with threshold
+    makeConfusionMatrix(methodName, allYLabels, allYPred, dataType="test", combined=nStraps)
+
+    #finally print the performances
+    print(f"Performance for cross validation for method \"{methodName}\"")
+    printCrossValidationPerformance("AUC", AUCs)
+    printCrossValidationPerformance("Accuracy", ACCs)
+    printCrossValidationPerformance("Recall", RECs)
+
 
 def runClassifier(classifier, methodName:str, threshold:float, xTrain:pd.DataFrame, yTrain:pd.DataFrame, xTest:pd.DataFrame, yTest:pd.DataFrame = None) -> pd.DataFrame:
     """Given training data and test data, perform a single run of the provided classifier\n
     and if true melanoma label is available for the test data, also compute some test statistics.\n
     :param classifier: classifier to run
-    :param nameName: method name, e.g. \"base\" or \"extended\"
+    :param methodName: method name, e.g. \"base\" or \"extended\"
     :param threshold: decision threshold for the classifier
     :param xTrain: training x data(features)
     :param yTrain: y labels for training data
@@ -155,26 +219,8 @@ def runClassifier(classifier, methodName:str, threshold:float, xTrain:pd.DataFra
         #add true melanoma labels to result dataframe:
         result["true_melanoma_label"] = yTest
 
-        #If true labels are available, calculate some test statistics & ouput ROC curve
-
-        #calculate AUC for current shuffle using the prediction probabilities
-        AUC = roc_auc_score(yTest, yProbs)
-        #turn predicted probabilities into binary predictions using the given decision threshold
-        yPred = (yProbs >= threshold).astype(int)
-        #compute accuracy and recall for the given decision threshold
-        accuracy = accuracy_score(yTest, yPred)
-        recall = recall_score(yTest, yPred)
-
-        #print performances:
-        print(f"Performance for method \"{methodName}\"")
-        print(f"\tAUC: {AUC:.4f}\n")
-        print(f"\tRecall: {recall:.4f}\n")
-        print(f"\tAccuracy: {accuracy:.4f}\n")
-
-        #output ROC curve:
-        makeGraphROC(methodName, yTest, yProbs, "test", combined=False)
-        #output Confusion matrix:
-        makeConfusionMatrix(methodName, yTest, yPred, "test")
+        #PERFORM CROSS VALIDATION
+        finalCrossValidateClassifier(classifier, methodName, threshold, xTest, yTest)
 
     return result
 

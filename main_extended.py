@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from pathlib import Path
 
 from util.feature_extraction import extract
@@ -47,7 +47,7 @@ def main(csvPath:str, savePath:str, testImgDir:str, testMaskDir:str, testMetadat
     xTest = xTest[["img_id", "fA_score", "fB_score", "fC_score", "fBV_score", "fCH_score", "fS_score"]]#keep img_id for test data for later result output
 
     #create classifier for extended method
-    classifier = RandomForestClassifier(class_weight="balanced",max_depth=4)
+    classifier = LogisticRegression(class_weight="balanced",max_iter=100000)
 
     #run classifier and output test results if available
     result = runClassifier(classifier, "extended", 0.5, xTrain, yTrain, xTest, yTest)
