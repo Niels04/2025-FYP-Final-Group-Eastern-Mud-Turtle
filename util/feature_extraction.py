@@ -4,16 +4,17 @@ from pathlib import Path
 
 #_________When importing from main_baseline.py the imports have to be changed like this____________
 from util.img_util import ImageDataLoader as IDL
-from util.inpaint_util import removeHair as rH
-from util.feature_A import fA_extractor
-from util.feature_B import fB_extractor
-from util.feature_C import fC_extractor
+from util.img_util import rate_hair as rH
+from util.feature_A import fA_extractor, fA_formula
+from util.feature_B import fB_extractor, fB_formula
+from util.feature_C import fC_extractor, fC_formula
+from util.feature_D import fD_formula
 from util.feature_BV import fBV_extractor
 from util.feature_cheese import fCHEESE_extractor as fCH_extractor
 from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 
 # from img_util import ImageDataLoader as IDL
-# from inpaint_util import removeHair as rH
+# from hair_rating import rate_hair as rH
 # from feature_A import fA_extractor
 # from feature_B import fB_extractor
 # from feature_C import fC_extractor
@@ -21,7 +22,7 @@ from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 # from feature_cheese import fCHEESE_extractor as fCH_extractor
 # from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 
-_DATA_DIR = Path(__file__).resolve().parent.parent / "data"#obtain data directory
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data" #obtain data directory
 
 # set up relevant directories
 img_dir = str(_DATA_DIR / "lesion_imgs/")
@@ -38,7 +39,7 @@ def normalizeMinMax(column:pd.Series) -> pd.Series:
     return ((column - minVal)/(maxVal - minVal))
 
 # hepler function for main python script
-def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, base_model= True) -> pd.DataFrame:
+def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, base_model= True, function_features= False) -> pd.DataFrame:
     """Function to create, return and optionally save a Pandas data frame that stores information about 
     all image-maks pairs in the given directory.
     If only one directory is specified, the function assumes that both masks and images are found in it.
@@ -55,7 +56,8 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     :param features_dir: The directory in which to save the resulting data frame as a csv file.
                          Default is None, in which case the data frame will not be saved, but simply returned. 
     :param base_model: Boolean value to indicate if only the base features will be extracted, defaulted to True.
-    
+    :param function_features: Boolean value to indicate if the features needed to run the formula-based prediction will
+                              be extracted, defaulted to False.    
     :return: Pandas data frame with name of the file, patient and lesion id, value for each extracted feature, 
              for all images in the given directories.
              
@@ -80,7 +82,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     rows = []
 
     # iterate through the pairs
-    for img_rgb, img_gray, mask, mask_og, name in tqdm(data_loader):
+    for img_rgb, _, mask, mask_gs, name in tqdm(data_loader):
 
         # get patient_id and lesion_id from the filename
         name_split = name.split('_')
@@ -93,22 +95,31 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
         # extract the features with the proper functions
 
-        fA_score, fA_worst = fA_extractor(mask_og)         # asymmetry - roundness of image
+        fA_score, _ = fA_extractor(mask_gs)                # asymmetry - roundness of image
         fB_score = fB_extractor(mask)                      # border irregularity - compactness of image
         fC_score = fC_extractor(img_rgb, mask)             # color - amount of different colors in image
+        hair_label = rH(img_rgb)                           # hair label (0 - 1 - 2 based on hair amount)
 
         if not base_model:
             fBV_score = fBV_extractor(img_rgb, mask)       # blue veil - amount of blue-ish pixels in lesion
             fCHEESE_score = fCH_extractor(mask)            # cheese - number of clusters in the mask of the lesion
             fSNOW_score = fS_extractor(img_rgb, mask)      # snowflake - checks if image hase white-ish pixels     
 
+        if function_features:
+            A_val = fA_formula(mask)
+            B_val = fB_formula(mask)
+            C_val = fC_formula(img_rgb, mask)
+            D_val = fD_formula()
 
         # create the new column for the final csv file
 
-        datapoint = [name, patient_ID, lesion_ID, pat_les_ID, fA_score, fB_score, fC_score]
+        datapoint = [name, patient_ID, lesion_ID, pat_les_ID, hair_label, fA_score, fB_score, fC_score]
         
         if not base_model:
             datapoint += [fBV_score, fCHEESE_score, fSNOW_score]
+        
+        if function_features:
+            datapoint += [A_val, B_val, C_val, D_val]
         
         # get true melanoma label if metadata file is given
         if metadata_dir:
@@ -128,10 +139,13 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
     # appropriately name columns
 
-    col_names = ['img_id', 'patient_id', 'lesion_id', 'pat_les_ID', 'fA_score', 'fB_score', 'fC_score']
+    col_names = ['img_id', 'patient_id', 'lesion_id', 'pat_les_ID', 'hair_label','fA_score', 'fB_score', 'fC_score']
 
     if not base_model:
         col_names += ['fBV_score', 'fCH_score', 'fS_score']
+    
+    if function_features:
+        col_names += ['A_val', 'B_val', 'C_val', 'D_val']
 
     if metadata_dir:
         col_names.append('true_melanoma_label')
@@ -154,4 +168,4 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     return cd
 
 if __name__ == "__main__":
-    extract(img_dir, mask_dir, metadata_dir, features_dir, base_model= False)
+    extract(img_dir, mask_dir, metadata_dir, features_dir, base_model= False, function_features= True)
