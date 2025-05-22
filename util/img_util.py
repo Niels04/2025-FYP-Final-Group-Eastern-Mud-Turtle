@@ -194,10 +194,9 @@ class ImageDataLoader:
     :yield:s img_rgb, img_gray, mask, name when iterated through.
     
     """
-    def __init__(self, img_directory, mask_directory, transform=None):
+    def __init__(self, img_directory, mask_directory):
 
         # set up the lists to store image and mask file names
-        self.transform = transform
         self.img_list = []
         self.mask_list = []
 
@@ -254,23 +253,19 @@ class ImageDataLoader:
             # try to load the image and mask, if one of the two leads to no such file, update loss counter
             try:
                 img_rgb, img_gray = readImageFile(self.img_list[i])
-                mask_og = readImageFile(self.mask_list[i], is_mask= True)
-                mask = (mask_og > 127).astype(np.uint8) # mask as binary
+                mask_gs = readImageFile(self.mask_list[i], is_mask= True)
+                mask = (mask_gs > 127).astype(np.uint8) # mask as binary
                 # if the mask only contains 0s, update counter and skip
                 unique_vals = np.unique(mask)
                 if len(unique_vals) == 1 and int(unique_vals[0]) == 0:
                     self.lost += 1
                     continue
-
-                if self.transform:
-                    img_rgb = self.transform(img_rgb)
-                    img_gray = self.transform(img_gray)
             
                 #obtain file name
                 name = self.img_list[i].split("/")[-1]
 
                 # yield necessary informations
-                yield img_rgb, img_gray, mask, mask_og, name
+                yield img_rgb, img_gray, mask, mask_gs, name
             
             except Exception:
                 self.lost += 1
