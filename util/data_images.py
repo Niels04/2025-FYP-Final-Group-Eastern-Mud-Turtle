@@ -98,3 +98,4 @@ fig3.imshow(img_lesion)
 fig.savefig("../data/good_example.png", dpi=300)
 plt.close()
 print("Plot saved as [good_example.png] in the /data directory.")
+# -----------------------------------------

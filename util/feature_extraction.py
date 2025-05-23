@@ -39,7 +39,7 @@ def normalizeMinMax(column:pd.Series) -> pd.Series:
     return ((column - minVal)/(maxVal - minVal))
 
 # hepler function for main python script
-def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, base_model= True, function_features= False) -> pd.DataFrame:
+def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, base_model= True, formula_features= False) -> pd.DataFrame:
     """Function to create, return and optionally save a Pandas data frame that stores information about 
     all image-maks pairs in the given directory.
     If only one directory is specified, the function assumes that both masks and images are found in it.
@@ -56,8 +56,10 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     :param features_dir: The directory in which to save the resulting data frame as a csv file.
                          Default is None, in which case the data frame will not be saved, but simply returned. 
     :param base_model: Boolean value to indicate if only the base features will be extracted, defaulted to True.
-    :param function_features: Boolean value to indicate if the features needed to run the formula-based prediction will
-                              be extracted, defaulted to False.    
+    :param formula_features: Boolean value to indicate if the features needed to run the formula-based prediction will
+                              be extracted, defaulted to False. If set to \"only\", the program will extract EXCLUSIVELY
+                              features needed for the formula classifier to run, ignoring other parameters.
+
     :return: Pandas data frame with name of the file, patient and lesion id, value for each extracted feature, 
              for all images in the given directories.
              
@@ -92,34 +94,44 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
         # get full ID
         pat_les_ID = '_'.join(name_split[:3])
 
+        if formula_features == 'only':
 
-        # extract the features with the proper functions
-
-        fA_score, _ = fA_extractor(mask_gs)                # asymmetry - roundness of image
-        fB_score = fB_extractor(mask)                      # border irregularity - compactness of image
-        fC_score = fC_extractor(img_rgb, mask)             # color - amount of different colors in image
-        hair_label = rH(img_rgb)                           # hair label (0 - 1 - 2 based on hair amount)
-
-        if not base_model:
-            fBV_score = fBV_extractor(img_rgb, mask)       # blue veil - amount of blue-ish pixels in lesion
-            fCHEESE_score = fCH_extractor(mask)            # cheese - number of clusters in the mask of the lesion
-            fSNOW_score = fS_extractor(img_rgb, mask)      # snowflake - checks if image hase white-ish pixels     
-
-        if function_features:
             A_val = fA_formula(mask)
             B_val = fB_formula(mask)
             C_val = fC_formula(img_rgb, mask)
             D_val = fD_formula()
 
-        # create the new column for the final csv file
+            # create the new column for the final csv file
+            datapoint = [name, patient_ID, lesion_ID, pat_les_ID, A_val, B_val, C_val, D_val]
+        
+        # extract the features with the proper functions
+        else:
+            fA_score, _ = fA_extractor(mask_gs)                # asymmetry - roundness of image
+            fB_score = fB_extractor(mask)                      # border irregularity - compactness of image
+            fC_score = fC_extractor(img_rgb, mask)             # color - amount of different colors in image
+            hair_label = rH(img_rgb)                           # hair label (0 - 1 - 2 based on hair amount)
 
-        datapoint = [name, patient_ID, lesion_ID, pat_les_ID, hair_label, fA_score, fB_score, fC_score]
-        
-        if not base_model:
-            datapoint += [fBV_score, fCHEESE_score, fSNOW_score]
-        
-        if function_features:
-            datapoint += [A_val, B_val, C_val, D_val]
+            if not base_model:
+                fBV_score = fBV_extractor(img_rgb, mask)       # blue veil - amount of blue-ish pixels in lesion
+                fCHEESE_score = fCH_extractor(mask)            # cheese - number of clusters in the mask of the lesion
+                fSNOW_score = fS_extractor(img_rgb, mask)      # snowflake - checks if image hase white-ish pixels     
+
+            if formula_features:
+                A_val = fA_formula(mask)
+                B_val = fB_formula(mask)
+                C_val = fC_formula(img_rgb, mask)
+                D_val = fD_formula()
+
+
+            # create the new column for the final csv file
+
+            datapoint = [name, patient_ID, lesion_ID, pat_les_ID, hair_label, fA_score, fB_score, fC_score]
+            
+            if not base_model:
+                datapoint += [fBV_score, fCHEESE_score, fSNOW_score]
+            
+            if formula_features:
+                datapoint += [A_val, B_val, C_val, D_val]
         
         # get true melanoma label if metadata file is given
         if metadata_dir:
@@ -139,26 +151,33 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
     # appropriately name columns
 
-    col_names = ['img_id', 'patient_id', 'lesion_id', 'pat_les_ID', 'hair_label','fA_score', 'fB_score', 'fC_score']
+    if formula_features == 'only':
 
-    if not base_model:
-        col_names += ['fBV_score', 'fCH_score', 'fS_score']
-    
-    if function_features:
-        col_names += ['A_val', 'B_val', 'C_val', 'D_val']
+        col_names = ['img_id', 'patient_id', 'lesion_id', 'pat_les_ID', 'A_val', 'B_val', 'C_val', 'D_val']
 
-    if metadata_dir:
-        col_names.append('true_melanoma_label')
+        cd.columns = col_names
 
-    cd.columns = col_names
+    else:
 
+        col_names = ['img_id', 'patient_id', 'lesion_id', 'pat_les_ID', 'hair_label','fA_score', 'fB_score', 'fC_score']
 
-    #normalize the features that aren't between 0 and 1 already
+        if not base_model:
+            col_names += ['fBV_score', 'fCH_score', 'fS_score']
+        
+        if formula_features:
+            col_names += ['A_val', 'B_val', 'C_val', 'D_val']
 
-    cd["fC_score"] = normalizeMinMax(cd["fC_score"])
+        if metadata_dir:
+            col_names.append('true_melanoma_label')
 
-    if not base_model:
-        cd["fCH_score"] = normalizeMinMax(cd["fCH_score"])
+        cd.columns = col_names
+
+        # normalize the features that aren't between 0 and 1 already
+
+        cd["fC_score"] = normalizeMinMax(cd["fC_score"])
+
+        if not base_model:
+            cd["fCH_score"] = normalizeMinMax(cd["fCH_score"])
 
 
     # save df if specified
