@@ -4,7 +4,7 @@ from skimage import measure
 from math import pi
 
 def crop(mask):
-        """Crops a given binary mask tighlyr.
+        """Crops a given binary mask tighly.
 
         :param mask: Binary Mask to be cropped.
         :return: cropped mask"""

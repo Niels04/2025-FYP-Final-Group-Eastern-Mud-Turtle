@@ -2,12 +2,15 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
+#for energy consumption measurement
+from codecarbon import track_emissions
+
 from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, accuracy_score, recall_score, roc_auc_score, roc_curve, confusion_matrix
+from sklearn.metrics import classification_report, precision_score, recall_score, roc_auc_score, roc_curve, confusion_matrix
 from sklearn.utils import resample
 from sklearn.inspection import DecisionBoundaryDisplay
 
@@ -22,22 +25,22 @@ class Performance:
     """Class to store performance metrics
     of a method on either training or validation/test data.
     """
-    def __init__(self, ACCs: pd.DataFrame, RECs: pd.DataFrame, AUCs: pd.DataFrame, meanAcc:float, varAcc:float, meanRecall:float, varRecall:float, meanAUC:float, varAUC:float):
-        #save means and variances (so they don't have to be computed each time we want to access them)
-        self.meanAcc = meanAcc
-        self.varAcc = varAcc
+    def __init__(self, PREs: pd.DataFrame, RECs: pd.DataFrame, AUCs: pd.DataFrame, meanPRE:float, varPRE:float, meanRecall:float, varRecall:float, meanAUC:float, varAUC:float):
+        #save means and variances (so they don't have to be computed each time we want to PREess them)
+        self.meanPRE = meanPRE
+        self.varPRE = varPRE
         self.meanRecall = meanRecall
         self.varRecall = varRecall
         self.meanAUC = meanAUC
         self.varAUC = varAUC
         #save actual performances for later boxplot generation
-        self.ACCs = ACCs
+        self.PREs = PREs
         self.RECs = RECs
         self.AUCs = AUCs
     def __str__(self):
         return (
-            f"\tMean Accuracy: {self.meanAcc:.4f}\n"
-            f"\tVariance Accuracy: {self.varAcc:.4f}\n"
+            f"\tMean Precision: {self.meanPRE:.4f}\n"
+            f"\tVariance Precision: {self.varPRE:.4f}\n"
             f"\tMean Recall: {self.meanRecall:.4f}\n"
             f"\tVariance Recall: {self.varRecall:.4f}\n"
             f"\tMean AUC: {self.meanAUC:.4f}\n"
@@ -155,7 +158,7 @@ def finalCrossValidateClassifier(classifier, methodName:str, threshold:float, xT
     :return None:"""
     #store performances for individual straps
     AUCs = np.zeros(nStraps)#array to store AUC scores
-    ACCs = np.zeros(nStraps)#array to store accuracy scores
+    PREs = np.zeros(nStraps)#array to store precision scores
     RECs = np.zeros(nStraps)#array to store recall scores
     #store all true labels and prediction probabilities for calculation of combined ROC curve at the end
     allYLabels = []
@@ -170,15 +173,15 @@ def finalCrossValidateClassifier(classifier, methodName:str, threshold:float, xT
             AUCs[i] = roc_auc_score(y, yProbs)
         except:
             print("This error can occurr by chance if a random strap of the test data doesn't contain any Melanoma.\n Just try again :)")
-        #compute accuracy and recall for current strap
+        #compute precision and recall for current strap
         yPred = (yProbs >= threshold).astype(int)#turn prediction probabilities into binary classifications using the threshold
-        ACCs[i] = accuracy_score(y, yPred)
+        PREs[i] = precision_score(y, yPred)
         RECs[i] = recall_score(y, yPred)
         #save prediction probabilites and true labels for combined ROC curve & confusion matrix
         allYPredictionProbs.extend(yProbs)#save prediction probabilities for current strap
         allYLabels.extend(y)#save true labels for current strap
 
-    #compute a combined ROC curve that takes into account predictions over all shuffles and save it to .png
+    #compute a combined ROC curve that takes into PREount predictions over all shuffles and save it to .png
     makeGraphROC(methodName, allYLabels, allYPredictionProbs, dataType="test")
         #NOTE: "Combined" means that the ROC curve is computed based on the predicted probabilities over all of the random bootstraps
     allYPredictionProbsNP = np.array(allYPredictionProbs)#convert to np array
@@ -188,7 +191,7 @@ def finalCrossValidateClassifier(classifier, methodName:str, threshold:float, xT
     #finally print the performances
     print(f"Performance for cross validation for method \"{methodName}\"")
     printCrossValidationPerformance("AUC", AUCs)
-    printCrossValidationPerformance("Accuracy", ACCs)
+    printCrossValidationPerformance("Precision", PREs)
     printCrossValidationPerformance("Recall", RECs)
 
 
@@ -268,14 +271,14 @@ class Evaluator:
         self.performances = {}
     
     #NOTE: This is for our own iterative process of finding the best classifier/trainSize/hyperparameters like tree depth, etc...
-    #      For the final evaluation we could slightly re-write this method to measure prediction accuracy on actual test data
+    #      For the final evaluation we could slightly re-write this method to measure prediction precision on actual test data
     #      (not validation data like its using right now)
     #      BUT I believe we shouldn't iterate & change our model after running it on the actual test data
     #      (would be Overfitting by Observer as described in the lecture)
     #      so I think it's super important that we keep "random_state=42" in the split_data the whole time
 
     def evalClassifier(self, classifier, name:str, xTrain:pd.DataFrame, yTrain:pd.DataFrame, patientGroups:pd.DataFrame, threshold:float, nShuffles = 20, validationSize=0.2, saveCurveROC = False, saveConfusionMatrix = False):
-        """Given the classifier, computes AUC(accuracy) and
+        """Given the classifier, computes AUC(precision) and
         recall (TP/(TP+FN)) over given number of grouped
         shuffles of the given training/validation data, grouped by the
         given column.\n
@@ -293,10 +296,10 @@ class Evaluator:
         :param saveCurveROC: If True, a combined ROC curve for this method(on the valdiation data) will be saved as .png in /result
         :param saveConfusionMatrix: If True, a confusion matrix for this method(on the validation data) will be saved as .png in /result
         :return None:"""
-        ACCsTrain = np.zeros(nShuffles)#array to store accuracy scores for training data
+        PREsTrain = np.zeros(nShuffles)#array to store precision scores for training data
         RECsTrain = np.zeros(nShuffles)#array to store recall scores for training data
         AUCsTrain = np.zeros(nShuffles)#array to store AUC scores (area under ROC curve) for training data
-        ACCsVal = np.zeros(nShuffles)#array to store accuracy scores for validation data
+        PREsVal = np.zeros(nShuffles)#array to store precision scores for validation data
         RECsVal = np.zeros(nShuffles)#array to store recall scores for validation data
         AUCsVal = np.zeros(nShuffles)#array to store AUC scores (area under ROC curve) for validation data
         
@@ -321,8 +324,8 @@ class Evaluator:
                 print("This error can occurr by chance if a random shuffle of the test data doesn't contain any Melanoma.\n Just try again :)")
             #turn predicted probabilities into binary predictions using the given decision threshold
             yPred = (yProbs >= threshold).astype(int)
-            #compute accuracy and recall for the given decision threshold
-            ACCsTrain[i] = accuracy_score(yTrain.iloc[trainIdx], yPred)
+            #compute precision and recall for the given decision threshold
+            PREsTrain[i] = precision_score(yTrain.iloc[trainIdx], yPred)
             RECsTrain[i] = recall_score(yTrain.iloc[trainIdx], yPred)
             
             #test on validation data for current split--------------
@@ -331,18 +334,21 @@ class Evaluator:
                 allYPredictionProbs.extend(yProbs)#save prediction probabilities for current shuffle for combined ROC curve computation/confusion matrix
                 allYLabels.extend(yTrain.iloc[valIdx])#save true labels for current shuffle for combined ROC curve computation/confusion matrix
             #calculate AUC for current shuffle using the prediction probabilities
-            AUCsVal[i] = roc_auc_score(yTrain.iloc[valIdx], yProbs)
+            try:
+                AUCsVal[i] = roc_auc_score(yTrain.iloc[valIdx], yProbs)
+            except:
+                print("This error can occurr by chance if a random shuffle of the test data doesn't contain any Melanoma.\n Just try again :)")
             #turn predicted probabilities into binary predictions using the given decision threshold
             yPred = (yProbs >= threshold).astype(int)
-            #compute accuracy and recall for the given decision threshold
-            ACCsVal[i] = accuracy_score(yTrain.iloc[valIdx], yPred)
+            #compute precision and recall for the given decision threshold
+            PREsVal[i] = precision_score(yTrain.iloc[valIdx], yPred)
             RECsVal[i] = recall_score(yTrain.iloc[valIdx], yPred)
 
-        trainPerformance = Performance(ACCsTrain, RECsTrain, AUCsTrain, np.mean(ACCsTrain), np.var(ACCsTrain), np.mean(RECsTrain), np.var(RECsTrain), np.mean(AUCsTrain), np.var(AUCsTrain))
-        validationPerformance = Performance(ACCsVal, RECsVal, AUCsVal, np.mean(ACCsVal), np.var(ACCsVal), np.mean(RECsVal), np.var(RECsVal), np.mean(AUCsVal), np.var(AUCsVal))
+        trainPerformance = Performance(PREsTrain, RECsTrain, AUCsTrain, np.mean(PREsTrain), np.var(PREsTrain), np.mean(RECsTrain), np.var(RECsTrain), np.mean(AUCsTrain), np.var(AUCsTrain))
+        validationPerformance = Performance(PREsVal, RECsVal, AUCsVal, np.mean(PREsVal), np.var(PREsVal), np.mean(RECsVal), np.var(RECsVal), np.mean(AUCsVal), np.var(AUCsVal))
         self.performances[name] = MethodPerformance(trainPerformance, validationPerformance)#store performance for current method in dict
 
-        if saveCurveROC:#compute a combined ROC curve that takes into account predictions over all shuffles and save it to .png
+        if saveCurveROC:#compute a combined ROC curve that takes into PREount predictions over all shuffles and save it to .png
             makeGraphROC(name, allYLabels, allYPredictionProbs, dataType="validation")
         #NOTE: "Combined" means that the ROC curve is computed based on the predicted probabilities over all of the random grouped
         #      shuffles FOR THE VALIDATION DATA
@@ -352,7 +358,7 @@ class Evaluator:
             makeConfusionMatrix(name, allYLabels, allYPred, dataType="validation", combined=nShuffles)
     
     def printPerformances(self) -> None:
-        """Print mean and variance of Accuracy, Recall and AUC for all methods to console.\n
+        """Print mean and variance of precision, Recall and AUC for all methods to console.\n
         (for both training and validation runs)
         """
         for name, perf in self.performances.items():
@@ -366,18 +372,18 @@ class Evaluator:
     def makeBoxplot(self, metric:str) -> None:
         """Generates a boxplot that compares the performances of all different
         methods stored inside evaluator class in a boxplot and saves it as .png in \"/result/\"\n
-        :param metric: Performance metric to be compared, one of either: \"recall\", \"accuracy\" or \"AUC\"
+        :param metric: Performance metric to be compared, one of either: \"recall\", \"precision\" or \"AUC\"
         :return None:"""
         #obtain training and validation performances for all methods in a flattened list
         trainPerfs = []
         if metric == "recall":
             trainPerfs = [val for perf in self.performances.values() for val in (perf.trainPerformance.RECs, perf.validationPerformance.RECs)]
-        elif metric == "accuracy":
-            trainPerfs = [val for perf in self.performances.values() for val in (perf.trainPerformance.ACCs, perf.validationPerformance.ACCs)]
+        elif metric == "precision":
+            trainPerfs = [val for perf in self.performances.values() for val in (perf.trainPerformance.PREs, perf.validationPerformance.PREs)]
         elif metric == "AUC":
             trainPerfs = [val for perf in self.performances.values() for val in (perf.trainPerformance.AUCs, perf.validationPerformance.AUCs)]
         else:
-            raise Exception("\"metric\" must be either \"recall\", \"accuracy\" or \"AUC\".")
+            raise Exception("\"metric\" must be either \"recall\", \"precision\" or \"AUC\".")
         #obtain names of the corresponding methods
         methodNames = list(self.performances.keys())
         methodNames = [f"{name} ({suffix})" for name in methodNames for suffix in ("train", "val")]
@@ -419,11 +425,12 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
 #NOTE: We could try other stuff here like different parameters for K in KNN
 #      or different max_depth for Tree or Forest and compare the performances.
 #      Also we could try shrinking the training data and seeing if we can still
-#      get acceptable performance with notably less training data
+#      get PREeptable performance with notably less training data
 #      (could plot trainSize vs. performance on training data & test data)
 #      For the report we could use the output to conduct a statistical test
 #      whether one method is better than the other at some confidence level.
 
+@track_emissions(country_iso_code="DNK")
 def main():
     featureFile = str(_PROJ_DIR / "data/features.csv")
     df=read(featureFile)
@@ -441,12 +448,13 @@ def main():
     #clf3 = KNeighborsClassifier(weights='distance',n_neighbors=1,algorithm='brute')
     clf4 = LogisticRegression(class_weight="balanced",max_iter=100000)
 
-# If we use clf1 maxdepth 1 and clf2 maxdepth 5 accuracy 80°% and recall 50%
+# If we use clf1 maxdepth 1 and clf2 maxdepth 5 precision 80°% and recall 50%
 # If we set maxdepth to be more than 10 it just overfit
-# if we set maxdepth to be more than 5 we get high accuracy however the recall is between 20-40%
-# if we set maxdepth to be 3 clf2: accuracy gets not that consistant (between 55-78% avg: 65), however the recall gets 60%
-# if we set maxdepth to be 3 clf1: accuracy 85% and the recall is consistent on avg 40%
-# if we set maxdepth to be 1 clf1: accuracy 80% and the recall is not that consistant on avg 50%
+# if we set maxdepth to be more than 5 we get high precision however the recall is between 20-40%
+# if we set maxdepth to be 3 clf2: precision gets not that consistant (between 55-78% avg: 65), however the recall gets 60%
+# if we set maxdepth to be 3 clf1: precision 85% and the recall is consistent on avg 40%
+# if we set maxdepth to be 1 clf1: precision 80% and the recall is not that consistant on avg 50%
+
     voting_clf = VotingClassifier(estimators=[
         ('rf', clf1), 
         ('dt', clf2), 
@@ -459,15 +467,16 @@ def main():
     #eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5) #NO use of modifying the threshold  
     eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.4)
     eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveConfusionMatrix=True)
-    
+        
     xTrainStripped = xTrain[["fA_score", "fC_score", "fBV_score", "fS_score"]]#only use promising features
     eval.evalClassifier(clf4, "LogisticRegression_Stripped", xTrainStripped, yTrain, patientGroup, threshold=0.5, saveCurveROC=True, saveConfusionMatrix=True)
     makeDecisionBoundary("fBV_score", "fA_score", clf4, "Logistic Regression", xTrain, yTrain, threshold=0.5)
 
-    eval.printPerformances()
+    #eval.printPerformances()
     eval.makeBoxplot("AUC")
     eval.makeBoxplot("recall")
-    eval.makeBoxplot("accuracy")
+    eval.makeBoxplot("precision")
+
 
 if __name__ == "__main__":
     main()
@@ -478,19 +487,177 @@ if __name__ == "__main__":
     DecisionTree: Similar to the Randomforest
     KNN: Because of the small amount of MEL pictures, using KNN is a catastrophy. Only produces minimal 'good' results if k=1 
             (Most of the data point are non-MEL that means if we look at the neighbor there is a higher chance of finding non-MEL.)
-    Logistic:Increasing the iteration, increases both the accuracy and recall on avg!
+    Logistic:Increasing the iteration, increases both the precision and recall on avg!
             (There is no point increasing it over 100_000)
     Features:
     A: More stability
     B: More variaty
     C: chaotic, not consistent, huge variaty
-    AB:  We get an avg: recall 0.5 and accuarcy 0.6
-    BC:  We get an avg: recall 0.3 and accuarcy 0.6
-    AC:  We get an avg: recall 0.6 and accuarcy 0.6
-    ABC: We get an avg: recall 0.6 and accuarcy 0.6
+    AB:  We get an avg: recall 0.5 and PREuarcy 0.6
+    BC:  We get an avg: recall 0.3 and PREuarcy 0.6
+    AC:  We get an avg: recall 0.6 and PREuarcy 0.6
+    ABC: We get an avg: recall 0.6 and PREuarcy 0.6
     [based on the voting]
     
-    In overall, we can try to modify 3 clf to get something which is relatively accurate OR we just use the Logistic regression, it's consistent and accurate WITHOUT modifing it  
+    In overall, we can try to modify 3 clf to get something which is relatively PREurate OR we just use the Logistic regression, it's consistent and PREurate WITHOUT modifing it  
     
     
     '''
+
+class Formula():
+    """Class to implement the classifier based on a set formula.
+    Given a dataset, it can predict the label of each datapoint.
+    After doing so, it is possible to compute and return precision
+    and recall score of the classifier with the relative functions."""
+    
+    def __init__(self):
+        self.preds = None
+
+    def formula(self, datapoint, return_value= False):
+        """Given a datapoint, extracts the needed column values to
+        compute the formula value, which is then converted into a label.
+        By default, only the label is returned, but it is possible to 
+        return both label and formula value by setting the parameter
+        return_value to True.
+        
+        :param datapoint: The datapoint to be analysed.
+        :param return_value: Boolean value that indicates wether or not the
+                            formula value will be returned alongside the label.
+        
+        :return: The computed label, and optionally the formula value.
+        
+        """
+
+        # fixed formula
+        value = (1.3 * datapoint['A_val']) + (0.1 * datapoint['B_val']) + (0.5 * datapoint['C_val']) + (0.5 * datapoint['D_val'])
+        label = 1 if value > 4.7 else 0
+
+        if return_value:
+            return label, value
+        return label
+    
+    def predict(self, data: pd.DataFrame):
+        """Given a set of datapoints, predicts the label for each.
+        Predictions are stored within the class, and also returned
+        by the function.
+        
+        :param data: The dataframe to be analysed.
+        
+        :return: The series of predictions.
+        
+        """
+
+        pred = data.copy()
+
+        self.preds = pred.apply(self.formula, axis= 1)
+
+        return self.preds
+
+    def predictions(self):
+        """If the model already predicted some labels, this function can be used to
+        obtain said predictions.
+        
+        """
+        if not self.preds:
+            raise Exception("Function called when no predictions have been made.")
+        
+        return self.preds   
+     
+    def precision(self, true_labels):
+        """After having predicted some labels, returns the precision score of
+        said predictions based on the given true labels.
+        
+        :param true_labels: The series of true labels to be used to compute
+                            the precision score.
+        
+        :return: The precision score.
+        
+        """
+        if not self.preds:
+            raise Exception("Function called when no predictions have been made.")
+        
+        return precision_score(true_labels, self.preds)
+    
+    def recall(self, true_labels):
+        """After having predicted some labels, returns the recall score of
+        said predictions based on the given true labels.
+        
+        :param true_labels: The series of true labels to be used to compute
+                            the recall score.
+        
+        :return: The recall score.
+        
+        """
+        if not self.preds:
+            raise Exception("Function called when no predictions have been made.")
+        
+        return recall_score(true_labels, self.preds)
+    
+    def finalCrossValidate(self, x: pd.DataFrame, y: pd.DataFrame, nStraps = 20) -> None:
+        """Cross validation via bootstrapping to estimate performance metrics and variances for our method.\n
+
+        :param x: Test x data (features)
+        :param y: y True labels, used to calculate performance metrics
+
+        :return None:
+        
+        """
+
+        # store performances for individual straps
+        PREs = np.zeros(nStraps)   #  precision scores
+        RECs = np.zeros(nStraps)   #  recall scores
+
+        # store all true labels and predictions
+        allYLabels = []
+        allYPredictions = []
+
+        for i in range(nStraps):
+
+            x_b, y_b = resample(x, y) # generate a bootstrap by resampling from the test data WITH REPLACEMENT
+
+            self.predict(x_b) # get predicted probabilities from model
+
+            # compute precision and recall for current strap
+            PREs[i] = self.precision(y_b)
+            RECs[i] = self.recall(y_b)
+
+            # save prediction probabilites and true labels
+            allYPredictions.extend(self.predictions()) # save predictions for current strap
+            allYLabels.extend(y_b) # save true labels for current strap
+
+        # create confusion matrix
+        makeConfusionMatrix("Formula", allYLabels, allYPredictions, dataType= "test", combined= nStraps)
+
+        # finally print the performances
+        print(f"Performance for cross validation for method Formula")
+        printCrossValidationPerformance("precision", PREs)
+        printCrossValidationPerformance("Recall", RECs)
+    
+    def runFormulaClassifier(self, x: pd.DataFrame, y: pd.DataFrame = None) -> pd.DataFrame:
+        """Given required data, perform a single run of the formula classifier\n
+        and if true melanoma label is available for the test data, also compute some test statistics.\n
+
+        :param x: Data frame containing features needed to compute the formula value.
+        :param y: (optional) Data frame containing true labels.
+
+        :return result: pandas dataframe with [\"img_id\", \"melanoma_prediction\"] + [\"true_melanoma_label\"] (if available)
+        
+        """
+
+        self.predict(x)
+
+        # create result dataframe to store img_id and prediction (+ true label if available)
+        result = pd.DataFrame({
+        'img_id': x["img_id"],
+        'melanoma_prediction': self.predictions()
+        })
+
+        if y is not None:
+
+            # add true melanoma labels to result dataframe:
+            result["true_melanoma_label"] = y
+
+            # PERFORM CROSS VALIDATION
+            self.finalCrossValidate(x, y)
+
+        return result

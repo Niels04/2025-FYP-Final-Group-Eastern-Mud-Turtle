@@ -3,9 +3,10 @@ import numpy as np
 from skimage.transform import resize
 from sklearn.cluster import KMeans
 
-import os
 import random
 import cv2
+
+
 
 # cv2.setLogLevel(0)
 
