@@ -1,5 +1,6 @@
 import numpy as np
 
+# helper function to cut off the parts of the image not in the mask
 def cut_im_by_mask(image, mask):
     
     # same as previous function
@@ -26,7 +27,20 @@ def cut_im_by_mask(image, mask):
 
     return cut_image
 
-def fSNOWFLAKE_extractor(image, mask,threshold=735) -> float:
+def fSNOWFLAKE_extractor(image, mask, threshold= 735) -> float:
+    """Given an (RGB) image and associated binary mask, checks if there are
+    white pixels in the region of interest. Returns 1 if that is the case,
+    0 otherwise.
+    
+    :param image: The RGB image to be analyzed.
+    :param mask: The binary mask of the image.
+    :threshold: Threshold value for the evaluation of the image.
+                Images with values lower than this parameter will
+                return 0. Defaulted to 735.
+    
+    :return: Binary value 0 or 1, indicating presence of white pixels.
+                
+    """
     #checks if the image has a white-ish color
     cutten_img=cut_im_by_mask(image,mask)
     flat_im = np.reshape(cutten_img, (-1, 3))

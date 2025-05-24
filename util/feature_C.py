@@ -86,6 +86,10 @@ def fC_extractor(img, mask, n= 6, threshold = 30):
             reduced_list.append(color)
     return len(reduced_list)
 
+# temporary
+def fC_formula(img, mask):
+    pass
+
 # imagepath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269.png"
 # maskpath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269_mask.png"
 

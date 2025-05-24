@@ -5,10 +5,12 @@ from skimage.transform import rotate
 
 # image is not accessed
 def fA_extractor(mask): #takes in a file path to image and mask
-
-    # not necessary, IDL class opens the mask already
-    #convert mask path to an array
-    # mask = np.array(Image.open(mask).convert("L"))
+    """Given a grayscale mask, computes and returns both mean asymmetry score
+    and worst asymmetry score.
+    
+    :param mask: The grayscale mask to be analyzed.
+    
+    :return: mean asymmetry score, worst asymmetry score."""
 
     #midpoint finder function
 
@@ -109,3 +111,6 @@ def fA_extractor(mask): #takes in a file path to image and mask
 
     return mean__worst_asymmetry(mask)  #check for both worst and mean and see which one works better maybe??
 
+# TEMPORARY
+def fA_formula(mask):
+    pass

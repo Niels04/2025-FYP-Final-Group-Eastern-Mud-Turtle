@@ -46,3 +46,8 @@ def fB_extractor(mask):
     compactness = (4*pi*A)/(perimeter**2)
 
     return compactness
+
+# TEMPORARY
+def fB_formula(mask):
+    pass
+
