@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
+#for energy consumption measurement
+from codecarbon import track_emissions
+
 from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -331,7 +334,10 @@ class Evaluator:
                 allYPredictionProbs.extend(yProbs)#save prediction probabilities for current shuffle for combined ROC curve computation/confusion matrix
                 allYLabels.extend(yTrain.iloc[valIdx])#save true labels for current shuffle for combined ROC curve computation/confusion matrix
             #calculate AUC for current shuffle using the prediction probabilities
-            AUCsVal[i] = roc_auc_score(yTrain.iloc[valIdx], yProbs)
+            try:
+                AUCsVal[i] = roc_auc_score(yTrain.iloc[valIdx], yProbs)
+            except:
+                print("This error can occurr by chance if a random shuffle of the test data doesn't contain any Melanoma.\n Just try again :)")
             #turn predicted probabilities into binary predictions using the given decision threshold
             yPred = (yProbs >= threshold).astype(int)
             #compute accuracy and recall for the given decision threshold
@@ -424,6 +430,7 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
 #      For the report we could use the output to conduct a statistical test
 #      whether one method is better than the other at some confidence level.
 
+@track_emissions(country_iso_code="DNK")
 def main():
     featureFile = str(_PROJ_DIR / "data/features.csv")
     df=read(featureFile)
@@ -447,6 +454,7 @@ def main():
 # if we set maxdepth to be 3 clf2: accuracy gets not that consistant (between 55-78% avg: 65), however the recall gets 60%
 # if we set maxdepth to be 3 clf1: accuracy 85% and the recall is consistent on avg 40%
 # if we set maxdepth to be 1 clf1: accuracy 80% and the recall is not that consistant on avg 50%
+
     voting_clf = VotingClassifier(estimators=[
         ('rf', clf1), 
         ('dt', clf2), 
@@ -459,15 +467,16 @@ def main():
     #eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5) #NO use of modifying the threshold  
     eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.4)
     eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveConfusionMatrix=True)
-    
+        
     xTrainStripped = xTrain[["fA_score", "fC_score", "fBV_score", "fS_score"]]#only use promising features
     eval.evalClassifier(clf4, "LogisticRegression_Stripped", xTrainStripped, yTrain, patientGroup, threshold=0.5, saveCurveROC=True, saveConfusionMatrix=True)
     makeDecisionBoundary("fBV_score", "fA_score", clf4, "Logistic Regression", xTrain, yTrain, threshold=0.5)
 
-    eval.printPerformances()
+    #eval.printPerformances()
     eval.makeBoxplot("AUC")
     eval.makeBoxplot("recall")
     eval.makeBoxplot("accuracy")
+
 
 if __name__ == "__main__":
     main()

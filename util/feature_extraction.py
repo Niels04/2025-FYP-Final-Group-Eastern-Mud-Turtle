@@ -2,24 +2,27 @@ from tqdm import tqdm
 import pandas as pd
 from pathlib import Path
 
-#_________When importing from main_baseline.py the imports have to be changed like this____________
-from util.img_util import ImageDataLoader as IDL
-from util.inpaint_util import removeHair as rH
-from util.feature_A import fA_extractor
-from util.feature_B import fB_extractor
-from util.feature_C import fC_extractor
-from util.feature_BV import fBV_extractor
-from util.feature_cheese import fCHEESE_extractor as fCH_extractor
-from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
+#for energy consumption measurement
+from codecarbon import track_emissions
 
-# from img_util import ImageDataLoader as IDL
-# from inpaint_util import removeHair as rH
-# from feature_A import fA_extractor
-# from feature_B import fB_extractor
-# from feature_C import fC_extractor
-# from feature_BV import fBV_extractor
-# from feature_cheese import fCHEESE_extractor as fCH_extractor
-# from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
+#_________When importing from main_baseline.py the imports have to be changed like this____________
+# from util.img_util import ImageDataLoader as IDL
+# from util.inpaint_util import removeHair as rH
+# from util.feature_A import fA_extractor
+# from util.feature_B import fB_extractor
+# from util.feature_C import fC_extractor
+# from util.feature_BV import fBV_extractor
+# from util.feature_cheese import fCHEESE_extractor as fCH_extractor
+# from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
+
+from img_util import ImageDataLoader as IDL
+from inpaint_util import removeHair as rH
+from feature_A import fA_extractor
+from feature_B import fB_extractor
+from feature_C import fC_extractor
+from feature_BV import fBV_extractor
+from feature_cheese import fCHEESE_extractor as fCH_extractor
+from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"#obtain data directory
 
@@ -38,6 +41,7 @@ def normalizeMinMax(column:pd.Series) -> pd.Series:
     return ((column - minVal)/(maxVal - minVal))
 
 # hepler function for main python script
+@track_emissions(country_iso_code="DNK")
 def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, base_model= True) -> pd.DataFrame:
     """Function to create, return and optionally save a Pandas data frame that stores information about 
     all image-maks pairs in the given directory.
@@ -81,6 +85,11 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
     # iterate through the pairs
     for img_rgb, img_gray, mask, mask_og, name in tqdm(data_loader):
+        
+        #to be removed_______
+        filepath = Path(name)
+        name = filepath.name
+        #____________________
 
         # get patient_id and lesion_id from the filename
         name_split = name.split('_')
