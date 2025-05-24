@@ -106,8 +106,7 @@ def fA_extractor(mask): #takes in a file path to image and mask
     
     
 # TEMPORARY
-def fA_formula(mask):
-    mean_score, worst_score = fA_extractor(mask)
+def fA_formula(mean_score, worst_score):
     form_mean = mean_score * 2
     form_worst = worst_score * 2
 

@@ -2,9 +2,8 @@ from tqdm import tqdm
 import pandas as pd
 from pathlib import Path
 
-<<<<<<< HEAD
 #for energy consumption measurement
-from codecarbon import track_emissions
+# from codecarbon import track_emissions
 
 #_________When importing from main_baseline.py the imports have to be changed like this____________
 # from util.img_util import ImageDataLoader as IDL
@@ -18,33 +17,13 @@ from codecarbon import track_emissions
 
 from img_util import ImageDataLoader as IDL
 from inpaint_util import removeHair as rH
-from feature_A import fA_extractor
-from feature_B import fB_extractor
-from feature_C import fC_extractor
+from feature_A import fA_extractor, fA_formula
+from feature_B import fB_extractor, fB_formula
+from feature_C import fC_extractor, fC_formula
+from feature_D import fD_formula
 from feature_BV import fBV_extractor
 from feature_cheese import fCHEESE_extractor as fCH_extractor
 from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
-=======
-#_________When importing from main_baseline.py the imports have to be changed like this____________
-from util.img_util import ImageDataLoader as IDL
-from util.img_util import rate_hair as rH
-from util.feature_A import fA_extractor, fA_formula
-from util.feature_B import fB_extractor, fB_formula
-from util.feature_C import fC_extractor, fC_formula
-from util.feature_D import fD_formula
-from util.feature_BV import fBV_extractor
-from util.feature_cheese import fCHEESE_extractor as fCH_extractor
-from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
-
-# from img_util import ImageDataLoader as IDL
-# from hair_rating import rate_hair as rH
-# from feature_A import fA_extractor
-# from feature_B import fB_extractor
-# from feature_C import fC_extractor
-# from feature_BV import fBV_extractor
-# from feature_cheese import fCHEESE_extractor as fCH_extractor
-# from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
->>>>>>> c2f6ad0c38e788fe2f677c6cdc7e92c2a6c358ab
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data" #obtain data directory
 
@@ -63,12 +42,7 @@ def normalizeMinMax(column:pd.Series) -> pd.Series:
     return ((column - minVal)/(maxVal - minVal))
 
 # hepler function for main python script
-<<<<<<< HEAD
-@track_emissions(country_iso_code="DNK")
-def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, base_model= True) -> pd.DataFrame:
-=======
 def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, base_model= True, formula_features= False) -> pd.DataFrame:
->>>>>>> c2f6ad0c38e788fe2f677c6cdc7e92c2a6c358ab
     """Function to create, return and optionally save a Pandas data frame that stores information about 
     all image-maks pairs in the given directory.
     If only one directory is specified, the function assumes that both masks and images are found in it.
@@ -88,6 +62,8 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     :param formula_features: Boolean value to indicate if the features needed to run the formula-based prediction will
                               be extracted, defaulted to False. If set to \"only\", the program will extract EXCLUSIVELY
                               features needed for the formula classifier to run, ignoring other parameters.
+                              A metadata file is necessary to run the formula feature extraction. Do not include them if
+                              no metadata.csv file is available.
 
     :return: Pandas data frame with name of the file, patient and lesion id, value for each extracted feature, 
              for all images in the given directories.
@@ -102,7 +78,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
 
     # set up data frames according to parameters
-
+    md = None
     if metadata_dir:
         md = pd.read_csv(metadata_dir)
     
@@ -113,16 +89,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     rows = []
 
     # iterate through the pairs
-<<<<<<< HEAD
-    for img_rgb, img_gray, mask, mask_og, name in tqdm(data_loader):
-        
-        #to be removed_______
-        filepath = Path(name)
-        name = filepath.name
-        #____________________
-=======
     for img_rgb, _, mask, mask_gs, name in tqdm(data_loader):
->>>>>>> c2f6ad0c38e788fe2f677c6cdc7e92c2a6c358ab
 
         # get patient_id and lesion_id from the filename
         name_split = name.split('_')
@@ -133,18 +100,19 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
         pat_les_ID = '_'.join(name_split[:3])
 
         if formula_features == 'only':
-
-            A_val = fA_formula(mask)
+            
+            mean_score, worst_score = fA_extractor(mask_gs)
+            A_val, _ = fA_formula(mean_score, worst_score)
             B_val = fB_formula(mask)
             C_val = fC_formula(img_rgb, mask)
-            D_val = fD_formula()
+            D_val = fD_formula(name, md, fBV_extractor(img_rgb, mask), fCH_extractor(mask))
 
             # create the new column for the final csv file
             datapoint = [name, patient_ID, lesion_ID, pat_les_ID, A_val, B_val, C_val, D_val]
         
         # extract the features with the proper functions
         else:
-            fA_score, _ = fA_extractor(mask_gs)                # asymmetry - roundness of image
+            fA_score, w = fA_extractor(mask_gs)                # asymmetry - roundness of image
             fB_score = fB_extractor(mask)                      # border irregularity - compactness of image
             fC_score = fC_extractor(img_rgb, mask)             # color - amount of different colors in image
             hair_label = rH(img_rgb)                           # hair label (0 - 1 - 2 based on hair amount)
@@ -155,10 +123,14 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
                 fSNOW_score = fS_extractor(img_rgb, mask)      # snowflake - checks if image hase white-ish pixels     
 
             if formula_features:
-                A_val = fA_formula(mask)
+                A_val, _ = fA_formula(fA_score, w)
                 B_val = fB_formula(mask)
                 C_val = fC_formula(img_rgb, mask)
-                D_val = fD_formula()
+
+                if not base_model:
+                    D_val = fD_formula(name, md, fBV_score, fCHEESE_score)
+                else:
+                    D_val = fD_formula(name, md, fBV_extractor(img_rgb, mask), fCH_extractor(mask))
 
 
             # create the new column for the final csv file

@@ -13,7 +13,7 @@ def main(savePath:str, testImgDir:str, testMaskDir:str, testMetadataPath:str) ->
     if testImgDir is not None:
 
         # extract the features from the external test images and return them without saving to file
-        testData = extract(testImgDir, testMaskDir, testMetadataPath, feature_dir=None, formula_features= 'only')
+        testData = extract(testImgDir, testMaskDir, testMetadataPath, feature_dir= None, formula_features= 'only')
         testData.drop(axis=1, labels=["patient_id", "lesion_id"]) # drop unnecessary columns BUT keep img_id for later result output
         
         if testMetadataPath is not None:
