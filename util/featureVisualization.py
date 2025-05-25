@@ -56,8 +56,8 @@ def visualizeFeature(feature: str, data: pd.DataFrame, KDE = False) -> None:
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    #save to png
-    plt.savefig(str(_PLOT_DIR / f"feature_distribution_{feature}.png"), dpi=300, bbox_inches="tight")
+    #save to svg
+    plt.savefig(str(_PLOT_DIR / f"feature_distribution_{feature}.svg"), dpi=300, bbox_inches="tight")
     plt.close()#frees up the memory
 
 def visualizeFeature2d(feature1: str, feature2:str, data:pd.DataFrame) -> None:
@@ -88,8 +88,8 @@ def visualizeFeature2d(feature1: str, feature2:str, data:pd.DataFrame) -> None:
     plt.grid(True)
     plt.tight_layout()
 
-    #save as png
-    plt.savefig(str(_PLOT_DIR / f"features_{feature1}_{feature2}.png"), dpi=300, bbox_inches="tight")
+    #save as svg
+    plt.savefig(str(_PLOT_DIR / f"features_{feature1}_{feature2}.svg"), dpi=300, bbox_inches="tight")
     plt.close()#free memory
 
 def visualizeFeature3d(feature1: str, feature2:str, feature3:str, data:pd.DataFrame) -> None:
