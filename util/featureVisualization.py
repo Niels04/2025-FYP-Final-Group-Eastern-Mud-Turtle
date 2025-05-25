@@ -131,6 +131,7 @@ def main():
     visualizeFeature("fS_score", df, KDE=False)
 
     visualizeFeature3d("fA_score", "fBV_score", "fS_score", df)
+    visualizeFeature3d("fA_score", "fBV_score", "fC_score", df)
     visualizeFeature2d("fA_score", "fBV_score", df)
 
 
