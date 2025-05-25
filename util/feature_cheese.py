@@ -2,10 +2,12 @@ import numpy as np
 from skimage.measure import label
 from scipy.ndimage import binary_dilation, generate_binary_structure
 
-def fCHEESE_extractor(mask) -> int:
+def fCHEESE_extractor(mask, test= False) -> int:
     """Counts the number of connected components in the given binary mask.
     
     :param mask: The binary mask to be analyzed
+    :param test: Boolean value, if True it returns the raw cc value.
+                 (used to create plots for the report)
     :return: The number of connected components in the mask
     
     """
@@ -33,5 +35,10 @@ def fCHEESE_extractor(mask) -> int:
         # append result
         cc_list.append(cc)
     
+    mean_cc = sum(cc_list) // len(cc_list)
+
+    if test:
+        return mean_cc, label(mask, connectivity= 2).max()
+    
     # return mean cc number
-    return sum(cc_list) // len(cc_list)
+    return mean_cc
