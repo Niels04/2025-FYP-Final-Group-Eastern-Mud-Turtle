@@ -493,7 +493,7 @@ if __name__ == "__main__":
             (There is no point increasing it over 100_000)
     Features:
     A: More stability
-    B: More variaty
+    B: More variety
     C: chaotic, not consistent, huge variaty
     AB:  We get an avg: recall 0.5 and PREuarcy 0.6
     BC:  We get an avg: recall 0.3 and PREuarcy 0.6
