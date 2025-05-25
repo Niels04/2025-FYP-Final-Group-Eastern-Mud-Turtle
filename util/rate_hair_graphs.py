@@ -161,85 +161,9 @@ ax2.set_ylabel('Upper threshold')
 ax2.set_zlabel('Accuracy')
 
 plt.tight_layout()
-plt.savefig("../data/3D_accuracy_thresholds.png", dpi=300)
+plt.savefig("../data/3D_accuracy_thresholds.pdf", dpi=300)
 plt.close()
-print("Plot saved as [3D_accuracy_thresholds.png] in the /data directory.")
-
-# compute optimal parameter
-
-folder_path = "../data/hair_annotations"
-
-ah = pd.read_csv("../data/annotations.csv")
-
-# get information from the train set
-train_set = ah[ah['Group_ID'] != 'C']
-true_labels = train_set['Rating_Final']
-
-# initialize variables to store best results
-best_acc = 0
-best_accB = 0
-best_param = 0
-best_paramB = 0
-
-# list to save values to plot later
-acc_l = []
-acc_lB = []
-param_l = []
-
-# iterate over parameter values
-for p in range(0,255, 5):
-
-    # list to store predictions (no blur and blur)
-    pred_labels = []
-    pred_labelsB = []
-    param_l.append(p)
-
-    # predict labels
-    for i, row in train_set.iterrows():
-
-        # load image
-        filename = row['FileID'] + '.png'
-        img_path = os.path.join(folder_path, filename)
-        img = cv2.imread(img_path)
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-        # compute label with and without blur
-        _, label, _ = rate_hair(img_rgb, t1= 0.061, t2= 0.268, dst= p, blur= False)
-        _, labelB, _ = rate_hair(img, dst= p)
-        pred_labels.append(label)
-        pred_labelsB.append(labelB)
-
-    # compute accuracy score with and without blur
-    acc = accuracy_score(true_labels, pred_labels)
-    accB = accuracy_score(true_labels, pred_labelsB)
-    acc_l.append(acc)
-    acc_lB.append(accB)
-
-    # update best results appropriately
-    if acc > best_acc:
-        best_acc = acc
-        best_param = p
-    
-    if accB > best_accB:
-        best_accB = accB
-        best_paramB = p
-
-print(f"  NO BLUR | Best parameter: {best_param}; with accuracy: {best_acc:.4f} ")
-print(f"WITH BLUR | Best parameter: {best_paramB}; with accuracy: {best_accB:.4f} ()")
-
-
-# plot results
-
-plt.plot(param_l, acc_l, label='Without Blur', marker='o')
-plt.plot(param_l, acc_lB, label='With Blur', marker='o')
-plt.xlabel("Parameter value")
-plt.ylabel("Accuracy")
-plt.title("Accuracy Comparison: Blurred vs. Not Blurred Image")
-plt.grid(True)
-plt.legend()
-plt.savefig("../data/2D_accuracy_parameter.png", dpi=300)
-plt.close()
-print("Plot saved as [2D_accuracy_parameter.png] in the /data directory.")
+print("Plot saved as [3D_accuracy_thresholds.pdf] in the /data directory.")
 
 
 # accuracy on original annotations
