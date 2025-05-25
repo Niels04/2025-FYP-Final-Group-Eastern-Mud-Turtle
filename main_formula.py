@@ -1,6 +1,6 @@
 from pathlib import Path
 from util.feature_extraction import extract
-from util.classifier import Formula
+from util.classifierOpenQuestion import Formula
 
 _PROJ_DIR = Path(__file__).resolve().parent   # obtain project directory
 _DATA_DIR = _PROJ_DIR / "data"                # obtain data directory
