@@ -530,7 +530,7 @@ class Formula():
 
         # fixed formula
         value = (1.3 * datapoint['A_val']) + (0.1 * datapoint['B_val']) + (0.5 * datapoint['C_val']) + (0.5 * datapoint['D_val'])
-        label = 1 if value > 4.7 else 0
+        label = 1 if value > 4.75 else 0
 
         if return_value:
             return label, value

@@ -86,13 +86,8 @@ def fC_extractor(img, mask, n= 6, threshold = 30):
             reduced_list.append(color)
     return len(reduced_list)
 
-# temporary
-def fC_formula(img, mask):
-    pass
-
 # imagepath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269.png"
 # maskpath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269_mask.png"
-
 # image = cv2.imread("imagepath")
 # #image_2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 # mask = cv2.imread("maskpath", 0)
@@ -102,7 +97,6 @@ def fC_formula(img, mask):
 # if mask is None:
 #     raise FileNotFoundError(f"Mask not found: {maskpath}")
 
-# image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-# colors = fC_extractor(image_rgb, mask, n=8)
-# print(f"Found {colors} distinct colors.")
+def fC_formula(img_rgb, mask):
+    colors = fC_extractor(img_rgb, mask, n=8)
+    return colors
