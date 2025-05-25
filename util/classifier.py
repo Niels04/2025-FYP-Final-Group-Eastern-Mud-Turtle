@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 
 #for energy consumption measurement
-from codecarbon import track_emissions
+#from codecarbon import track_emissions
 
 from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
@@ -430,7 +430,7 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
 #      For the report we could use the output to conduct a statistical test
 #      whether one method is better than the other at some confidence level.
 
-@track_emissions(country_iso_code="DNK")
+#@track_emissions(country_iso_code="DNK")
 def main():
     featureFile = str(_PROJ_DIR / "data/features.csv")
     df=read(featureFile)
@@ -446,7 +446,7 @@ def main():
     clf1 = RandomForestClassifier(class_weight="balanced",max_depth=5) #for the base max_depth 2 and 5 for the extended
     clf2 = DecisionTreeClassifier(class_weight="balanced",max_depth=5) #for the base max_depth 2 and 5 for the extended
     #clf3 = KNeighborsClassifier(weights='distance',n_neighbors=1,algorithm='brute')
-    clf4 = LogisticRegression(class_weight="balanced",max_iter=100000)
+    clf4 = LogisticRegression(class_weight="balanced",max_iter=100)
 
 # If we use clf1 maxdepth 1 and clf2 maxdepth 5 precision 80°% and recall 50%
 # If we set maxdepth to be more than 10 it just overfit
@@ -467,12 +467,13 @@ def main():
     #eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5) #NO use of modifying the threshold  
     eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.4)
     eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveConfusionMatrix=True)
+    print(f"Logistic Regression took {clf4.n_iter_} iterations to converge.")
         
     xTrainStripped = xTrain[["fA_score", "fC_score", "fBV_score", "fS_score"]]#only use promising features
     eval.evalClassifier(clf4, "LogisticRegression_Stripped", xTrainStripped, yTrain, patientGroup, threshold=0.5, saveCurveROC=True, saveConfusionMatrix=True)
-    makeDecisionBoundary("fBV_score", "fA_score", clf4, "Logistic Regression", xTrain, yTrain, threshold=0.5)
+    makeDecisionBoundary("fBV_score", "fC_score", clf4, "Logistic Regression", xTrain, yTrain, threshold=0.5)
 
-    #eval.printPerformances()
+    eval.printPerformances()
     eval.makeBoxplot("AUC")
     eval.makeBoxplot("recall")
     eval.makeBoxplot("precision")
