@@ -103,7 +103,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
             
             mean_score, worst_score = fA_extractor(mask_gs)
             A_val, _ = fA_formula(mean_score, worst_score)
-            B_val = fB_formula(mask)
+            B_val = fB_formula(img_rgb, mask)
             C_val = fC_formula(img_rgb, mask)
             D_val = fD_formula(name, md, fBV_extractor(img_rgb, mask), fCH_extractor(mask))
 
@@ -124,7 +124,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
             if formula_features:
                 A_val, _ = fA_formula(fA_score, w)
-                B_val = fB_formula(mask)
+                B_val = fB_formula(img_rgb, mask)
                 C_val = fC_formula(img_rgb, mask)
 
                 if not base_model:

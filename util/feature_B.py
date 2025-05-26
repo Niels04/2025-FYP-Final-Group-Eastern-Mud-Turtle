@@ -197,7 +197,7 @@ def analyze_sector_gradients(image, mask, center, angle_start, angle_end, lines_
 
     return np.mean(max_gradients)
 
-def fB_formula(mask, nSectors=8):
+def fB_formula(img, mask, nSectors=8):
     """Extract the \"irregular Boder\" feature,
     which is a number from 0 to 1 that is a measure
     for the difference between the center intensity

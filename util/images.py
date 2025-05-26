@@ -3,6 +3,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from feature_cheese import fCHEESE_extractor as fCH_extractor
 from img_util import readImageFile
+import cv2
+from skimage.transform import resize
+from skimage.transform import rotate
+from sklearn.cluster import KMeans
+from pathlib import Path
+
+import feature_B
+
+#setup directories
+_FILE_DIR = Path(__file__).resolve().parent#obtain directory of this file
+_PROJ_DIR = _FILE_DIR.parent#obtain main project directory
+_RESULT_DIR = _PROJ_DIR / "result"#obtain results directory
+_IMG_DIR = _PROJ_DIR / "data/lesion_imgs"
+_MASK_DIR = _PROJ_DIR / "data/lesion_masks"
 
 """
 Helper python script that saves the images related 
@@ -86,3 +100,99 @@ fig.savefig("../data/good_example.pdf", dpi=300, bbox_inches='tight')
 plt.close()
 print("Plot saved as [good_example.pdf] in the /data directory.")
 #------------------------------------------------------------
+
+
+# IMAGE 4: Visualization of Feature B for Open Question
+#-------------------------------------------------------
+
+def draw_sector_overlay(image, center, nSectors, line_color='lightgreen'):
+    """
+    Overlay sector boundary lines and labels on the image.
+
+    :param image: 2D (grayscale) or 3D (color) image as NumPy array.
+    :param center: (x, y) tuple of the center point.
+    :param radius: Length of the radial lines (in pixels).
+    :param sector_angles_deg: List of (start_deg, end_deg) for each sector.
+    :param line_color: Color of the overlay lines (default: light green).
+    """
+    rad = 100
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.imshow(image)
+    cx, cy = center
+
+    sectorDeg = 360 / nSectors
+    for i in range(nSectors):
+        #calculate ending and starting degree
+        theta_start = (np.pi/2) - np.deg2rad(i*sectorDeg)
+        theta_end = (np.pi/2) - np.deg2rad((i+1)*sectorDeg)
+
+        # Draw boundary lines
+        for theta in [theta_start, theta_end]:#basically just go over the two items in the list
+            x_end = cx + rad * np.cos(theta)
+            y_end = cy + rad * np.sin(theta)
+            ax.plot([cx, x_end], [cy, y_end], color=line_color, linewidth=1.5)
+
+        # Place label in the center of the sector
+        mid_theta = (theta_start + theta_end) / 2
+        x_label = cx + (rad * 0.2) * np.cos(mid_theta)
+        y_label = cy + (rad * 0.2) * np.sin(mid_theta)
+        ax.text(x_label, y_label, str(i), color='lightgreen', fontsize=12, ha='center', va='center')
+
+    ax.set_axis_off()
+    plt.tight_layout()
+
+def fB_formula_visualization(img, mask, nSectors=8):
+    """Extract the \"irregular Boder\" feature,
+    which is a number from 0 to 1 that is a measure
+    for the difference between the center intensity
+    and border intensity of the lesion.
+    
+    :param img: the image to process
+    :param mask: mask to apply to the image
+    :return: border irregularity measure from
+    0(regular) to 1(irregular)"""
+    #Preprocess: Apply a gaussean blur
+    img = cv2.GaussianBlur(img, ksize=(3, 3), sigmaX=0)
+
+    cutImg = feature_B.cut_im_by_mask(img, mask)
+    cutImgGray = cv2.cvtColor(cutImg, cv2.COLOR_RGB2GRAY)#convert image to grayscale for gradient analysis
+    cutMask = feature_B.cut_mask(mask)
+    mX, mY = feature_B.find_midpoint_v4(cutMask)
+
+    #store max gradient values for the sectors
+    gradScores = []
+
+    sectorDeg = int(np.ceil(360 / nSectors))
+    for deg in range(0, 360, sectorDeg):
+        #analyze gradient in this sector
+        avgMaxGrad = feature_B.analyze_sector_gradients(cutImgGray, cutMask, (mX, mY), deg, deg+sectorDeg)
+
+        gradScores.append(avgMaxGrad)
+
+    draw_sector_overlay(cutImg, (mX, mY), nSectors)
+    plt.imshow(cutMask, cmap="Reds", alpha=0.1)
+    plt.axis("off")
+    plt.savefig(str(_RESULT_DIR / "otherPlots/featureB_formula.png"), dpi=300, bbox_inches="tight")
+    gradScores = np.array(gradScores)
+
+    kmeans = KMeans(n_clusters=2, random_state=0).fit(gradScores.reshape(-1, 1))
+    # Get cluster centers (means)
+    centers = kmeans.cluster_centers_.flatten()  # Shape (2,)
+    # Identify the cluster with the lower mean
+    lower_mean_cluster = np.argmax(centers)
+    # Get labels
+    labels = kmeans.labels_
+    # Count sectors assigned to the lower-mean cluster
+    count = np.sum(labels == lower_mean_cluster)
+    return count
+
+
+imName = "PAT_615_1167_722.png"
+maskName = imName.split(".")[0] + "_mask" + ".png"
+testImg = cv2.imread(str(_IMG_DIR /  imName))
+testImg = cv2.cvtColor(testImg, cv2.COLOR_BGR2RGB)
+testMask = cv2.imread(str(_MASK_DIR / maskName), cv2.IMREAD_GRAYSCALE)
+_, testMask = cv2.threshold(testMask, 127, 255, cv2.THRESH_BINARY)
+
+fB_formula_visualization(testImg, testMask)
