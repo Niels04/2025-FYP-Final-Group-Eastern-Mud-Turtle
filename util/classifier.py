@@ -473,7 +473,7 @@ def main():
     eval.evalClassifier(clf2, "DecisionTree", xTrain, yTrain, patientGroup, threshold=0.5) # It doesn't improve it. It just makes it overfit or underfit
     #eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5) #NO use of modifying the threshold  
     eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.4)
-    eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveConfusionMatrix=True)
+    eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveCurveROC=True, saveConfusionMatrix=True)
     print(f"Logistic Regression took {clf4.n_iter_} iterations to converge.")
         
     xTrainStripped = xTrain[["fA_score", "fC_score", "fBV_score", "fS_score"]]#only use promising features
