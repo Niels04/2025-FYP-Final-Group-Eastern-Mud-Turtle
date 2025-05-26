@@ -17,7 +17,12 @@ __pycache__/
 /result/*.pdf
 /result/featurePlots/*.png
 /result/featurePlots/*.html
+/result/featurePlots/*.pdf
 /result/featurePlots/*.svg
+/result/otherPlots/*.png
+/result/otherPlots/*.html
+/result/otherPlots/*.pdf
+/result/otherPlots/*.svg
 /util/*.pdf
 .Python
 build/
