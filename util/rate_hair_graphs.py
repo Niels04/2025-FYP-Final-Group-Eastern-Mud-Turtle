@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 
 """Helper python script to find optimal parameters for the rate_hair function.
-will plot and save the results in the """
+will plot and save the results in the data directory"""
 
 
 
