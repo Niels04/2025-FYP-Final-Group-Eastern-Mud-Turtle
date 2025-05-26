@@ -107,46 +107,12 @@ def fA_extractor(mask): #takes in a file path to image and mask
     
     
 # TEMPORARY
-def fA_formula(mean_score, worst_score):
-    form_mean = mean_score * 2
-    form_worst = worst_score * 2
+def fA_formula(mask,threshold=0.2):
 
-    return form_mean, form_worst
-    
-def fA_formula_v2(mask):
-
-    def asymmetry_v2(mask):
+    def asymmetry_form(mask,threshold):
         row_mid, col_mid = find_midpoint_v1(mask)           # uses the previous function
 
-        asymmetry_score = 2
-
-        # slicing into 4 different halves. We will calculate symmetry on both halves
-        # ceil and floor are used in case the outputs of the midpoint functions have decimals
-        upper_half = mask[:ceil(row_mid), :]
-        lower_half = mask[floor(row_mid):, :]
-        left_half = mask[:, :ceil(col_mid)]
-        right_half = mask[:, floor(col_mid):]
-
-        # flip one of the complementary halves of each pair (one horizontal half, one vertical half)
-        flipped_lower = np.flip(lower_half, axis=0)
-        flipped_right = np.flip(right_half, axis=1)
-
-        if flipped_lower.all() == np.array(upper_half).all():
-            asymmetry_score -= 1
-        if flipped_right.all() == np.array(left_half).all():
-            asymmetry_score -= 1
-
-        return asymmetry_score
-    
-    cutted_mask = cut_mask(mask)
-    return asymmetry_v2(cutted_mask)
-
-def fA_formula_v3(mask):
-
-    def asymmetry_v3(mask):
-        row_mid, col_mid = find_midpoint_v1(mask)           # uses the previous function
-
-        asymmetry_score = 2
+        asymmetry_score = 0
 
         # slicing into 4 different halves. We will calculate symmetry on both halves
         # ceil and floor are used in case the outputs of the midpoint functions have decimals
@@ -166,19 +132,19 @@ def fA_formula_v3(mask):
         # to calculate ratio, we need to know how many pixels there are in total
         total_pxls = np.sum(mask)
         # the sum together how many true values there are
-        # keeping note of xor logic => the more ASYMMETRY the higher the number
+        # keeping note of xor logic => the more ASYMMETRY the higher the number, 1 if different entry, 0 if same
         hori_asymmetry_pxls = np.sum(hori_xor_area)
         vert_asymmetry_pxls = np.sum(vert_xor_area)
 
-        if flipped_lower.all() == np.array(upper_half).all():
-            asymmetry_score -= 1
-        if flipped_right.all() == np.array(left_half).all():
-            asymmetry_score -= 1
+        if hori_asymmetry_pxls >= threshold*np.sum(upper_half):
+            asymmetry_score += 1
+        if vert_asymmetry_pxls >= threshold*np.sum(left_half):
+            asymmetry_score += 1
 
         return asymmetry_score
     
     cutted_mask = cut_mask(mask)
-    return asymmetry_v3(cutted_mask)
+    return asymmetry_form(cutted_mask,threshold)
     
 
 

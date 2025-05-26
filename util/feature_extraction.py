@@ -89,7 +89,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     rows = []
 
     # iterate through the pairs
-    for img_rgb, _, mask, mask_gs, name in tqdm(data_loader):
+    for img_rgb, _, mask, _, name in tqdm(data_loader):
 
         # get patient_id and lesion_id from the filename
         name_split = name.split('_')
@@ -101,8 +101,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
         if formula_features == 'only':
             
-            mean_score, worst_score = fA_extractor(mask_gs)
-            A_val, _ = fA_formula(mean_score, worst_score)
+            A_val = fA_formula(mask) #also takes a threshold defaultly set to 0.2
             B_val = fB_formula(mask)
             C_val = fC_formula(img_rgb, mask)
             D_val = fD_formula(name, md, fBV_extractor(img_rgb, mask), fCH_extractor(mask))
@@ -112,7 +111,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
         
         # extract the features with the proper functions
         else:
-            fA_score, w = fA_extractor(mask_gs)                # asymmetry - roundness of image
+            fA_score, w = fA_extractor(mask)                   # asymmetry - roundness of image
             fB_score = fB_extractor(mask)                      # border irregularity - compactness of image
             fC_score = fC_extractor(img_rgb, mask)             # color - amount of different colors in image
             hair_label = rH(img_rgb)                           # hair label (0 - 1 - 2 based on hair amount)
@@ -123,7 +122,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
                 fSNOW_score = fS_extractor(img_rgb, mask)      # snowflake - checks if image hase white-ish pixels     
 
             if formula_features:
-                A_val, _ = fA_formula(fA_score, w)
+                A_val = fA_formula(mask)
                 B_val = fB_formula(mask)
                 C_val = fC_formula(img_rgb, mask)
 
