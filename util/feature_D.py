@@ -28,7 +28,7 @@ def fD_formula(img_id, md, BV, BV_threshold = 0.05):
 
     return sum([1.2 if diameter1>6 or diameter2>6 else 0, 0.8 if BV>BV_threshold else 0, 0.8 if age>44 else 0, 0.1 if itch=='True' else 0, 
                 1 if grew=='True' or changed=='True' else 0, 0.1 if hurt=='True' else 0, 0.8 if bleed=='True' else 0, 
-                0.2 if elevation=='True' else 0, ])
+                0.2 if elevation=='False' else 0, ])
 
                             #Points
 
