@@ -82,7 +82,10 @@ def makeGraphROC(name:str, yLabels: pd.DataFrame, yPredictedProbs: pd.DataFrame,
         plt.grid(True)
 
         #save to svg
-        plt.savefig(str(_RESULT_DIR / f"roc_curve_{name}.svg"), dpi=300, bbox_inches="tight")
+        if dataType == "test":
+            plt.savefig(str(_RESULT_DIR / f"roc_curve_{name}.svg"), dpi=300, bbox_inches="tight")
+        else:
+            plt.savefig(str(_RESULT_DIR / f"developmentResults/roc_curve_{name}.svg"), dpi=300, bbox_inches="tight")
         plt.close()#frees up the memory
 
 def makeConfusionMatrix(name:str, yLabels: pd.DataFrame, yPredictions: pd.DataFrame, dataType:str, combined = 1) -> None:
@@ -130,7 +133,10 @@ def makeConfusionMatrix(name:str, yLabels: pd.DataFrame, yPredictions: pd.DataFr
 
         #save to svg
         plt.tight_layout()
-        plt.savefig(str(_RESULT_DIR / f"confusion_matrix_{name}.svg"), dpi=300, bbox_inches="tight")
+        if dataType == "test":
+            plt.savefig(str(_RESULT_DIR / f"confusion_matrix_{name}.svg"), dpi=300, bbox_inches="tight")#save test result in result directory
+        else:
+            plt.savefig(str(_RESULT_DIR / f"developmentResults/confusion_matrix_{name}.svg"), dpi=300, bbox_inches="tight")#dev results go in separate directory
         plt.close()
 
 def printCrossValidationPerformance(name:str, data) -> None:
@@ -263,7 +269,7 @@ def makeDecisionBoundary(feature1: str, feature2:str, classifier, name:str, xTra
     plt.legend(*scatter.legend_elements(), title="Class")
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(str(_RESULT_DIR / f"decision_boundary_{name}_{round(threshold, 3)}.svg"), dpi=300)
+    plt.savefig(str(_RESULT_DIR / f"developmentResults/decision_boundary_{name}_{round(threshold, 3)}.svg"), dpi=300)
     plt.close()
 
 
@@ -400,7 +406,7 @@ class Evaluator:
 
         #save plot to svg
         plt.tight_layout()
-        plt.savefig(str(_RESULT_DIR / f"classifier_performance_boxplot_{metric}.svg"), dpi=300)
+        plt.savefig(str(_RESULT_DIR / f"developmentResults/classifier_performance_boxplot_{metric}.svg"), dpi=300)
         plt.close()
 #end of Evaluator class
 
@@ -467,7 +473,7 @@ def main():
     eval.evalClassifier(clf2, "DecisionTree", xTrain, yTrain, patientGroup, threshold=0.5) # It doesn't improve it. It just makes it overfit or underfit
     #eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5) #NO use of modifying the threshold  
     eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.4)
-    eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveConfusionMatrix=True)
+    eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveCurveROC=True, saveConfusionMatrix=True)
     print(f"Logistic Regression took {clf4.n_iter_} iterations to converge.")
         
     xTrainStripped = xTrain[["fA_score", "fC_score", "fBV_score", "fS_score"]]#only use promising features

@@ -20,7 +20,9 @@ from feature_C import fC_formula
 #setup directories
 _FILE_DIR = Path(__file__).resolve().parent#obtain directory of this file
 _PROJ_DIR = _FILE_DIR.parent#obtain main project directory
+_DATA_DIR = _PROJ_DIR / "data"#obtain data directory
 _RESULT_DIR = _PROJ_DIR / "result"#obtain results directory
+_PLT_DIR = _RESULT_DIR / "otherPlots"
 _IMG_DIR = _PROJ_DIR / "data/lesion_imgs"
 _MASK_DIR = _PROJ_DIR / "data/lesion_masks"
 
@@ -34,8 +36,8 @@ Figure 1, Figure 2, Figure 3 (temp)
 
 # PLOT 1: BLACK MASK
 #------------------------------------------------------------
-img_rgb, _ = readImageFile("../data/lesion_imgs/PAT_104_1755_320.png")
-img_mask = readImageFile("../data/lesion_masks/PAT_104_1755_320_mask.png", is_mask= True)
+img_rgb, _ = readImageFile(str(_IMG_DIR / "PAT_104_1755_320.png"))
+img_mask = readImageFile(str(_MASK_DIR / "PAT_104_1755_320_mask.png"), is_mask= True)
 
 fig = plt.figure(figsize= (12, 5))
 fig1 = fig.add_subplot(1, 2, 1)
@@ -48,15 +50,15 @@ fig2.set_axis_off()
 fig2.set_title("PAT_104_1755_320_mask.png")
 fig2.imshow(img_mask, cmap= 'gray')
 
-fig.savefig(str(_RESULT_DIR / "otherPlots/black_mask_example.pdf"), dpi=300, bbox_inches='tight')
+fig.savefig(str(_PLT_DIR / "black_mask_example.pdf"), dpi=300, bbox_inches='tight')
 plt.close()
-print("Plot saved as [black_mask_example.pdf] in the /results/otherPlots folder.")
+print("Plot saved as [black_mask_example.pdf] in the result/otherPlots folder.")
 #------------------------------------------------------------
 
 # PLOT 2: CC EXAMPLE
 #------------------------------------------------------------
-img_rgb, _ = readImageFile("../data/lesion_imgs/PAT_113_172_610.png")
-img_mask = readImageFile("../data/lesion_masks/PAT_113_172_610_mask.png", is_mask= True)
+img_rgb, _ = readImageFile(str(_IMG_DIR / "PAT_113_172_610.png"))
+img_mask = readImageFile(str(_MASK_DIR / "PAT_113_172_610_mask.png"), is_mask= True)
 img_mask = (img_mask > 127).astype(np.uint8)
 
 mean_cc, raw_cc = fCH_extractor(img_mask, test= True)
@@ -72,15 +74,15 @@ fig2.set_axis_off()
 fig2.set_title(f"Mean cc: {mean_cc} | Raw cc: {raw_cc}")
 fig2.imshow(img_mask, cmap= 'gray')
 
-fig.savefig(str(_RESULT_DIR / "otherPlots/cc_comparison.pdf"), dpi=300, bbox_inches='tight')
+fig.savefig(str(_PLT_DIR / "cc_comparison.pdf"), dpi=300, bbox_inches='tight')
 plt.close()
-print("Plot saved as [cc_comparison.pdf] in the /result/otherPlots folder.")
+print("Plot saved as [cc_comparison.pdf] in the result/otherPlots folder.")
 #------------------------------------------------------------
 
 # PLOT 3: GOOD EXAMPLE OF IMAGE-MASK PAIR
 #------------------------------------------------------------
-img_rgb, _ = readImageFile("../data/lesion_imgs/PAT_1216_759_542.png")
-img_mask = readImageFile("../data/lesion_masks/PAT_1216_759_542_mask.png", is_mask= True)
+img_rgb, _ = readImageFile(str(_IMG_DIR / "PAT_1216_759_542.png"))
+img_mask = readImageFile(str(_MASK_DIR / "PAT_1216_759_542_mask.png"), is_mask= True)
 
 img_mask = (img_mask > 127).astype(np.uint8)
 
@@ -103,9 +105,9 @@ fig3.set_axis_off()
 fig3.set_title(f"PAT_1216_759_542.png - Masked")
 fig3.imshow(img_lesion)
 
-fig.savefig(str(_RESULT_DIR / "otherPlots/good_example.pdf"), dpi=300, bbox_inches='tight')
+fig.savefig(str(_PLT_DIR / "good_example.pdf"), dpi=300, bbox_inches='tight')
 plt.close()
-print("Plot saved as [good_example.pdf] in the /result/otherPlots folder.")
+print("Plot saved as [good_example.pdf] in the result/otherPlots folder.")
 #------------------------------------------------------------
 
 # PLOT 3: OPTIMAL rate_hair() PARAMETERS
@@ -118,7 +120,7 @@ Will plot and save the results in the data directory"""
 
 # compute optimal thresholds
 print("> rate_hair() threshold test results:")
-ah = pd.read_csv("../data/annotations.csv")
+ah = pd.read_csv(str(_DATA_DIR / "annotations.csv"))
 
 # get information from the train set
 train_set = ah[ah['Group_ID'] != 'C']
@@ -219,9 +221,9 @@ ax2.set_zlabel('Accuracy')
 ax2.set_zlim(0, 1)
 
 plt.tight_layout()
-plt.savefig(str(_RESULT_DIR / "otherPlots/3D_accuracy_thresholds.pdf"), dpi=300)
+plt.savefig(str(_PLT_DIR / "3D_accuracy_thresholds.pdf"), dpi=300)
 plt.close()
-print("Plot saved as [3D_accuracy_thresholds.pdf] in the /result/otherPlots folder.")
+print("Plot saved as [3D_accuracy_thresholds.pdf] in the result/otherPlots folder.")
 
 
 # accuracy on original annotations
@@ -305,7 +307,7 @@ def fB_formula_visualization(img, mask, nSectors=8):
     draw_sector_overlay(cutImg, (mX, mY), nSectors)
     plt.imshow(cutMask, cmap="Reds", alpha=0.1)
     plt.axis("off")
-    plt.savefig(str(_RESULT_DIR / "otherPlots/featureB_formula.png"), dpi=300, bbox_inches="tight")
+    plt.savefig(str(_PLT_DIR / "featureB_formula.png"), dpi=300, bbox_inches="tight")
     print(f"Plot saved as [featureB_formula.png] in the result/otherPlots folder.")
     gradScores = np.array(gradScores)
 
@@ -476,6 +478,6 @@ for i, row in enumerate(df.index):
                 cell.set_facecolor("#f4a6a6")  # light red
 
 plt.tight_layout()
-plt.savefig(str(_RESULT_DIR / "otherPlots/formula_table.pdf"), dpi=300, bbox_inches='tight')
+plt.savefig(str(_PLT_DIR / "formula_table.pdf"), dpi=300, bbox_inches='tight')
 print(f"Formula features Table saved as [formula_table.pdf] in the /result/otherPlots folder.")
 #-------------------------------------------------------
