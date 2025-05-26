@@ -134,7 +134,70 @@ def cut_im_by_mask(image, mask):
 
     return cut_image
 
-def fB_formula(mask):
+def sample_along_line_until_border(image, mask, center, angle_rad, step=1.0):
+    """Sample pixel intensities along a radial line from the center until the lesion border is reached.\n
+    :param image: Grayscale image
+    :param mask: Binary lesion mask
+    :param center: center of lesion as tuple (x, y)
+    :param angle_rad: Angle (in radians) to sample along.
+    :param step: Step size (in pixels) along the line.
+    :return: 1D array of sampled intensities along the line.
+    """
+    cx, cy = center
+    sampled_values = []
+    
+    zeroCount = 0
+    d = 0
+    while True:
+        #get x & y coordinates for pixel at current distance
+        x = cx + d * np.cos(angle_rad)
+        y = cy + d * np.sin(angle_rad)
+        d+=1
+
+        # Clip to image boundaries
+        if x < 0 or x >= mask.shape[0] or y < 0 or y >= mask.shape[1]:
+            break
+
+        # Use bilinear interpolation to sample intensity
+        px = cv2.getRectSubPix(image, (1, 1), (x, y))[0, 0]
+        mx = cv2.getRectSubPix(mask.astype(np.uint8), (1, 1), (x, y))[0, 0]
+        if mx == 0:
+            zeroCount += 1
+        if zeroCount > 20:
+            break#reached the outside of the mask
+
+        sampled_values.append(px)
+        x = int(np.floor(x))
+        y = int(np.floor(y))
+        mask[x, y] = 0
+
+    return np.array(sampled_values)
+
+def analyze_sector_gradients(image, mask, center, angle_start, angle_end, lines_per_sector=10):
+    """For the sector in the given image masked with the given mask, return the mean of the maximum gradients
+    encountered along 10 sampled radial lines insdie the sector between angle_start & angle_end
+    :param image: image to analyze
+    :param mask: mask to apply to image before analysis
+    :param center: center from which to measure the sector
+    :param angle_start: starting angle of sector in degrees
+    :param angle_end: ending angle of sector in degrees
+    :param lines_per_sector: number of lines to be sampled in this sector
+    :return: mean of the maximum gradients across all lines in this sector
+    """
+    start_rad = np.radians(angle_start)
+    end_rad = np.radians(angle_end)
+    angle_range = np.linspace(start_rad, end_rad, lines_per_sector)#get angles for lines along which to sample
+    center_cv = (center[1], center[0])
+    max_gradients = []
+
+    for angle in angle_range:#iterate through angles
+        intensities = sample_along_line_until_border(image, mask, center_cv, angle)#sample along line at current angle
+        gradients = np.abs(np.gradient(intensities))#get 1d gradient from the line samples
+        max_gradients.append(np.max(gradients))#add max gradient along this line
+
+    return np.mean(max_gradients)
+
+def fB_formula(mask, nSectors=8):
     """Extract the \"irregular Boder\" feature,
     which is a number from 0 to 1 that is a measure
     for the difference between the center intensity
@@ -162,14 +225,7 @@ def fB_formula(mask):
 
         gradScores.append(avgMaxGrad)
 
-
-    draw_sector_overlay(cutImg, (mX, mY), nSectors)
-    plt.imshow(cutMask, cmap="Reds", alpha=0.1)
-    plt.axis("off")
-    plt.show()
     gradScores = np.array(gradScores)
-
-    print(gradScores)
 
     kmeans = KMeans(n_clusters=2, random_state=0).fit(gradScores.reshape(-1, 1))
     # Get cluster centers (means)
@@ -178,7 +234,6 @@ def fB_formula(mask):
     lower_mean_cluster = np.argmax(centers)
     # Get labels
     labels = kmeans.labels_
-    print(labels)
     # Count sectors assigned to the lower-mean cluster
     count = np.sum(labels == lower_mean_cluster)
     return count
