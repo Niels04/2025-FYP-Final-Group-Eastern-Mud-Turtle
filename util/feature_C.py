@@ -1,10 +1,12 @@
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+
 import cv2
 import numpy as np
+import cv2
 from skimage.transform import resize
 from sklearn.cluster import KMeans
 
-import random
-import cv2
 
 
 

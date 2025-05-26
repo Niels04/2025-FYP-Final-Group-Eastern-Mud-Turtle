@@ -1,8 +1,12 @@
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+
 import numpy as np
 import cv2
 from skimage import measure
 from sklearn.cluster import KMeans
 from math import pi
+
 
 def crop(mask):
         """Crops a given binary mask tighly.

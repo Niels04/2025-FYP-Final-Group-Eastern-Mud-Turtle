@@ -2,16 +2,20 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import cv2
+import os
+from sklearn.cluster import KMeans
+from pathlib import Path
 from sklearn.metrics import accuracy_score
 from feature_cheese import fCHEESE_extractor as fCH_extractor
 from img_util import readImageFile
-import cv2
-from skimage.transform import resize
-from skimage.transform import rotate
-from sklearn.cluster import KMeans
-from pathlib import Path
-
+from feature_A import fA_formula
 import feature_B
+from feature_B import fB_formula
+from feature_C import fC_formula
+
+
+
 
 #setup directories
 _FILE_DIR = Path(__file__).resolve().parent#obtain directory of this file
@@ -44,9 +48,9 @@ fig2.set_axis_off()
 fig2.set_title("PAT_104_1755_320_mask.png")
 fig2.imshow(img_mask, cmap= 'gray')
 
-fig.savefig("../data/black_mask_example.pdf", dpi=300, bbox_inches='tight')
+fig.savefig(str(_RESULT_DIR / "otherPlots/black_mask_example.pdf"), dpi=300, bbox_inches='tight')
 plt.close()
-print("Plot saved as [black_mask_example.pdf] in the /data directory.")
+print("Plot saved as [black_mask_example.pdf] in the /results/otherPlots folder.")
 #------------------------------------------------------------
 
 # PLOT 2: CC EXAMPLE
@@ -68,9 +72,9 @@ fig2.set_axis_off()
 fig2.set_title(f"Mean cc: {mean_cc} | Raw cc: {raw_cc}")
 fig2.imshow(img_mask, cmap= 'gray')
 
-fig.savefig("../data/cc_comparison.pdf", dpi=300, bbox_inches='tight')
+fig.savefig(str(_RESULT_DIR / "otherPlots/cc_comparison.pdf"), dpi=300, bbox_inches='tight')
 plt.close()
-print("Plot saved as [cc_comparison.pdf] in the /data directory.")
+print("Plot saved as [cc_comparison.pdf] in the /result/otherPlots folder.")
 #------------------------------------------------------------
 
 # PLOT 3: GOOD EXAMPLE OF IMAGE-MASK PAIR
@@ -99,9 +103,9 @@ fig3.set_axis_off()
 fig3.set_title(f"PAT_1216_759_542.png - Masked")
 fig3.imshow(img_lesion)
 
-fig.savefig("../data/good_example.pdf", dpi=300, bbox_inches='tight')
+fig.savefig(str(_RESULT_DIR / "otherPlots/good_example.pdf"), dpi=300, bbox_inches='tight')
 plt.close()
-print("Plot saved as [good_example.pdf] in the /data directory.")
+print("Plot saved as [good_example.pdf] in the /result/otherPlots folder.")
 #------------------------------------------------------------
 
 # PLOT 3: OPTIMAL rate_hair() PARAMETERS
@@ -199,6 +203,8 @@ ax1.set_xlabel('Lower threshold')
 ax1.set_ylabel('Upper threshold')
 ax1.set_zlabel('Accuracy')
 
+ax1.set_zlim(0, 1)
+
 # plot for blurred images
 ax2 = fig.add_subplot(1, 2, 2, projection='3d')
 ax2.scatter(t1_lB, t2_lB, acc_lB, c= acc_lB, cmap= 'viridis', alpha= 0.6)
@@ -210,10 +216,12 @@ ax2.set_xlabel('Lower threshold')
 ax2.set_ylabel('Upper threshold')
 ax2.set_zlabel('Accuracy')
 
+ax2.set_zlim(0, 1)
+
 plt.tight_layout()
-plt.savefig("../data/3D_accuracy_thresholds.pdf", dpi=300)
+plt.savefig(str(_RESULT_DIR / "otherPlots/3D_accuracy_thresholds.pdf"), dpi=300)
 plt.close()
-print("Plot saved as [3D_accuracy_thresholds.pdf] in the /data directory.")
+print("Plot saved as [3D_accuracy_thresholds.pdf] in the /result/otherPlots folder.")
 
 
 # accuracy on original annotations
@@ -224,7 +232,7 @@ true_labels = test_set['Rating_Final']
 ratios = test_set['Hair_Ratio']
 predicted_labels = np.array([0 if r < 0.020 else 1 if r < 0.118 else 2 for r in ratios])
 print(f"Accuracy of rate_hair() on test data (annotations from group C mandatory assigment): {accuracy_score(true_labels, predicted_labels):.4f}")
-
+#-------------------------------------------------------
 
 # IMAGE 4: Visualization of Feature B for Open Question
 #-------------------------------------------------------
@@ -298,6 +306,7 @@ def fB_formula_visualization(img, mask, nSectors=8):
     plt.imshow(cutMask, cmap="Reds", alpha=0.1)
     plt.axis("off")
     plt.savefig(str(_RESULT_DIR / "otherPlots/featureB_formula.png"), dpi=300, bbox_inches="tight")
+    print(f"Plot saved as [featureB_formula.png] in the result/otherPlots folder.")
     gradScores = np.array(gradScores)
 
     kmeans = KMeans(n_clusters=2, random_state=0).fit(gradScores.reshape(-1, 1))
@@ -320,3 +329,153 @@ testMask = cv2.imread(str(_MASK_DIR / maskName), cv2.IMREAD_GRAYSCALE)
 _, testMask = cv2.threshold(testMask, 127, 255, cv2.THRESH_BINARY)
 
 fB_formula_visualization(testImg, testMask)
+#-------------------------------------------------------
+
+# PLOT 5: ABC FORMULA FEATURES ACCURACY TABLE
+#-------------------------------------------------------
+# visual annotations (true labels)
+imgs = {
+    "PAT_56_86_479.png"     : {'A' : 2, 'B' : 5, 'C' : 2},
+    "PAT_59_46_537.png"     : {'A' : 2, 'B' : 5, 'C' : 2},
+    "PAT_70_107_591.png"    : {'A' : 2, 'B' : 0, 'C' : 3},
+    "PAT_109_868_113.png"   : {'A' : 2, 'B' : 0, 'C' : 2},
+    "PAT_320_681_410.png"   : {'A' : 2, 'B' : 0, 'C' : 2},
+    "PAT_324_1465_43.png"   : {'A' : 2, 'B' : 0, 'C' : 2},
+    "PAT_340_714_68.png"    : {'A' : 2, 'B' : 6, 'C' : 3},
+    "PAT_471_909_394.png"   : {'A' : 2, 'B' : 4, 'C' : 3},
+    "PAT_490_933_17.png"    : {'A' : 1, 'B' : 6, 'C' : 1},
+    "PAT_627_1188_503.png"  : {'A' : 2, 'B' : 0, 'C' : 3},
+    "PAT_656_1246_483.png"  : {'A' : 2, 'B' : 4, 'C' : 2},
+    "PAT_680_1289_585.png"  : {'A' : 2, 'B' : 4, 'C' : 2},
+    "PAT_754_1429_380.png"  : {'A' : 2, 'B' : 5, 'C' : 3},
+    "PAT_795_1508_925.png"  : {'A' : 2, 'B' : 0, 'C' : 1},
+    "PAT_884_1683_538.png"  : {'A' : 2, 'B' : 2, 'C' : 4},
+    "PAT_895_1699_872.png"  : {'A' : 2, 'B' : 2, 'C' : 3},
+    "PAT_966_1825_584.png"  : {'A' : 2, 'B' : 2, 'C' : 3},
+    "PAT_995_1867_165.png"  : {'A' : 2, 'B' : 0, 'C' : 3},
+    "PAT_1113_458_387.png"  : {'A' : 1, 'B' : 6, 'C' : 2},
+    "PAT_1259_892_793.png"  : {'A' : 2, 'B' : 3, 'C' : 4},
+    "PAT_1286_1000_517.png" : {'A' : 1, 'B' : 8, 'C' : 2},
+    "PAT_1420_1460_951.png" : {'A' : 2, 'B' : 6, 'C' : 3},
+    "PAT_1653_2916_346.png" : {'A' : 2, 'B' : 2, 'C' : 3},
+    "PAT_1698_3122_83.png"  : {'A' : 1, 'B' : 8, 'C' : 1},
+    "PAT_1928_3876_437.png" : {'A' : 2, 'B' : 8, 'C' : 3},
+    "PAT_2017_4164_500.png" : {'A' : 2, 'B' : 0, 'C' : 4},
+    "PAT_2103_4581_72.png"  : {'A' : 2, 'B' : 8, 'C' : 2}
+}
+
+# set up directories and open csv
+metadata_dir = "../data/metadata.csv"
+img_dir = "../data/lesion_imgs/"
+mask_dir ="../data/lesion_masks/"
+md = pd.read_csv(metadata_dir)
+
+# prepare arrays to store predictions
+A_preds = [None] * len(imgs)
+B_preds = [None] * len(imgs)
+C_preds = [None] * len(imgs)
+
+# iterate through images
+i = 0
+for img in imgs.keys():
+
+    # get the full path of the image
+    img_path = os.path.join(img_dir, img)
+
+    # get the name of the corresponding mask
+    name, ext = os.path.splitext(img)
+    mask_name = f"{name}_mask{ext}"
+
+    # get the full path of the mask
+    mask_path = os.path.join(mask_dir, mask_name)
+
+    # load image and mask
+    img_rgb, img_gray = readImageFile(img_path)
+    mask_gs = readImageFile(mask_path, is_mask= True)
+    mask = (mask_gs > 127).astype(np.uint8) # mask as binary
+
+    # binary value to indicate if it is melanoma or not
+    diagnosis = md[md['img_id'] == img]['diagnostic'].values[0]
+    true_label = 1 if diagnosis == 'MEL' else 0
+
+    # extract features
+    A_val = fA_formula(mask)
+    B_val = fB_formula(img_rgb, mask)
+    C_val = fC_formula(img_rgb, mask)
+
+    # append predictions
+    A_preds[i] = A_val
+    B_preds[i] = B_val
+    C_preds[i] = C_val
+
+    i += 1
+
+# compute accuracy for each feature:
+A_values = [v['A'] for v in imgs.values()]
+B_values = [v['B'] for v in imgs.values()]
+C_values = [v['C'] for v in imgs.values()]
+
+A_accuracy = accuracy_score(A_values, A_preds)
+B_accuracy = accuracy_score(B_values, B_preds)
+C_accuracy = accuracy_score(C_values, C_preds)
+
+# print results
+print("Accuracy of Formula features A, B, C\non 27 manually annotated images:")
+print(f"Prediction accuracy for A feature: {A_accuracy}")
+print(f"Prediction accuracy for B feature: {B_accuracy}")
+print(f"Prediction accuracy for C feature: {C_accuracy}")
+
+
+# create dataframe
+data = {
+    ("Feature A", "predicted") : A_preds,
+    ("Feature A", "actual")    : A_values,
+    ("Feature B", "predicted") : B_preds,
+    ("Feature B", "actual")    : B_values,
+    ("Feature C", "predicted") : C_preds,
+    ("Feature C", "actual")    : C_values,
+}
+index = imgs.keys()
+df = pd.DataFrame(data, index=index)
+
+# latex_text = df.to_latex()
+# with open("../data/formula_table.tex", "w") as f:
+#     f.write(latex_text)
+
+# print(f"Latex code for the table saved to [../data/formula_table.tex]")
+
+# plot table
+fig, ax = plt.subplots(figsize=(12, 8))
+ax.axis('off')
+
+# format column headers
+columns_flat = ["{} {}".format(*col) for col in df.columns]
+cell_text = df.values.tolist()
+
+# draw table
+table = plt.table(cellText=cell_text,
+                  rowLabels=df.index,
+                  colLabels=columns_flat,
+                  cellLoc='center',
+                  loc='center')
+
+# apply color formatting
+for i, row in enumerate(df.index):
+    for j, (feat, typ) in enumerate(df.columns):
+        if typ == "predicted":
+            actual_val = df.iloc[i][(feat, "actual")]
+            pred_val = df.iloc[i][(feat, "predicted")]
+            cell = table[i+1, j]  # +1 because row 0 is header
+            if pred_val == actual_val:
+                cell.set_facecolor("#d0f0c0")  # light green
+            elif abs(pred_val - actual_val) == 1:
+                cell.set_facecolor("#fff7b2") # light yellow
+            elif abs(pred_val - actual_val) == 2:
+                cell.set_facecolor("#ffd59a") # light orange
+            else:
+                cell.set_facecolor("#f4a6a6")  # light red
+
+plt.tight_layout()
+plt.savefig(str(_RESULT_DIR / "otherPlots/formula_table.pdf"), dpi=300, bbox_inches='tight')
+print(f"Formula features Table saved as [formula_table.pdf] in the /result/otherPlots folder.")
+#-------------------------------------------------------
