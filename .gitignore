@@ -13,8 +13,10 @@ __pycache__/
 /result/*.png
 /result/*.csv
 /result/*.html
+/result/*.svg
 /result/featurePlots/*.png
 /result/featurePlots/*.html
+/result/featurePlots/*.svg
 .Python
 build/
 develop-eggs/

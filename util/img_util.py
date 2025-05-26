@@ -265,7 +265,7 @@ class ImageDataLoader:
                 name = self.img_list[i].split("/")[-1]
 
                 # yield necessary informations
-                yield img_rgb, img_gray, mask, mask_gs, name
+                yield img_rgb, img_gray, mask, mask_gs, name 
             
             except Exception:
                 self.lost += 1

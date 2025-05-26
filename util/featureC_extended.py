@@ -76,27 +76,45 @@ def fC_extractor(img, mask, n= 6, threshold = 30):
     reduced_list = []
 
     for color in color_list:
-        diff = True
-        for unique_color in reduced_list:
-            dist = np.linalg.norm(np.array(color) - np.array(unique_color))
-            if dist < threshold:
-                diff = False
-                break
-        if diff:
-            reduced_list.append(color)
+        R, G, B = color
+        colorname = None
+        if R > 200 and G > 200 and B > 200:
+            colorname = "white"
+        elif R > 150 and G < 100 and B < 100:
+            colorname = "red"
+        elif 150 < R < 200 and 100 < G < 150 and 60 < B < 100:
+            colorname = "light brown"
+        elif 50 < R < 120 and 60 < G < 140 and 100 < B < 180:
+            colorname = "blue"
+        elif R < 60 and G < 60 and B < 60:
+            colorname = "black"
+        elif 80 < R < 130 and 50 < G < 100 and 30 < B < 80:
+            colorname = "dark brown"
+        
+        if colorname and colorname not in reduced_list:
+            reduced_list.append(colorname)
+    
     return len(reduced_list)
 
-# imagepath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269.png"
-# maskpath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269_mask.png"
-# image = cv2.imread("imagepath")
-# #image_2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-# mask = cv2.imread("maskpath", 0)
+# temporary
+def fC_formula(img, mask):
+    pass
 
-# if image is None:
-#     raise FileNotFoundError(f"Image not found: {imagepath}")
-# if mask is None:
-#     raise FileNotFoundError(f"Mask not found: {maskpath}")
+'''
+imagepath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269.png"
+maskpath = r"Projects in Data Science\2025-FYP-Final-GroupE\data\MaskImagePair\PAT_76_1039_269_mask.png"
 
-def fC_formula(img_rgb, mask):
-    colors = fC_extractor(img_rgb, mask, n=8)
-    return colors
+image = cv2.imread(imagepath)
+image_2 = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+mask = cv2.imread(maskpath, 0)
+
+if image is None:
+     raise FileNotFoundError(f"Image not found: {imagepath}")
+if mask is None:
+     raise FileNotFoundError(f"Mask not found: {maskpath}")
+
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+colors = fC_extractor(image_rgb, mask, n=8)
+print(f"Found {colors} distinct colors.")
+'''
