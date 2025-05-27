@@ -60,9 +60,6 @@ class Formula():
         obtain said predictions.
         
         """
-        if not self.preds:
-            raise Exception("Function called when no predictions have been made.")
-        
         return self.preds   
      
     def precision(self, true_labels):
@@ -75,9 +72,6 @@ class Formula():
         :return: The precision score.
         
         """
-        if not self.preds:
-            raise Exception("Function called when no predictions have been made.")
-        
         return precision_score(true_labels, self.preds)
     
     def recall(self, true_labels):
@@ -90,9 +84,6 @@ class Formula():
         :return: The recall score.
         
         """
-        if not self.preds:
-            raise Exception("Function called when no predictions have been made.")
-        
         return recall_score(true_labels, self.preds)
     
     def finalCrossValidate(self, x: pd.DataFrame, y: pd.DataFrame, nStraps = 20) -> None:

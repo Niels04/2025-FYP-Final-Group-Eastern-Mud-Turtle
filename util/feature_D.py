@@ -13,11 +13,9 @@ def fD_formula(img_id, md, BV, BV_threshold = 0.05):
 
     :return: int ]0,5[ 
     """
-    if md == None:
-        raise Exception("The function cannot run without a valid data frame.")
 
-    diameter1 = float(md.loc[md['img_id'] == img_id, 'diameter_1'].values[0]) if pd.notna(md.loc[md['img_id'] == img_id, 'diameter_1'].values[0]) else 0
-    diameter2 = float(md.loc[md['img_id'] == img_id, 'diameter_2'].values[0]) if pd.notna(md.loc[md['img_id'] == img_id, 'diameter_2'].values[0]) else 0
+    diameter1 = float(md.loc[md['img_id'] == img_id, 'diameter_1'].values[0]) if pd.notna(md.loc[md['img_id'] == img_id, 'diameter_1'].values) else 0
+    diameter2 = float(md.loc[md['img_id'] == img_id, 'diameter_2'].values[0]) if pd.notna(md.loc[md['img_id'] == img_id, 'diameter_2'].values) else 0
     age = int(md.loc[md['img_id'] == img_id, 'age'].values[0])
     itch = md.loc[md['img_id'] == img_id, 'itch'].values[0]
     grew = md.loc[md['img_id'] == img_id, 'grew'].values[0]
