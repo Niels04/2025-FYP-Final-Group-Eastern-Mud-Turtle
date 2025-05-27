@@ -139,9 +139,15 @@ def makeConfusionMatrix(name:str, yLabels: pd.DataFrame, yPredictions: pd.DataFr
         #save to svg
         plt.tight_layout()
         if dataType == "test":
-            plt.savefig(str(_RESULT_DIR / f"confusion_matrix_{name}.svg"), dpi=300, bbox_inches="tight")#save test result in result directory
+            if combined == 1:#confusion matrix is the result of only 1 run
+                plt.savefig(str(_RESULT_DIR / f"confusion_matrix_{name}.svg"), dpi=300, bbox_inches="tight")#save test result in result directory
+            else:
+                plt.savefig(str(_RESULT_DIR / f"combined_confusion_matrix_{name}.svg"), dpi=300, bbox_inches="tight")#save test result in result directory
         else:
-            plt.savefig(str(_RESULT_DIR / f"developmentResults/confusion_matrix_{name}.svg"), dpi=300, bbox_inches="tight")#dev results go in separate directory
+            if combined == 1:#confusion matrix is the result of only 1 run
+                plt.savefig(str(_RESULT_DIR / f"developmentResults/confusion_matrix_{name}.svg"), dpi=300, bbox_inches="tight")#dev results go in separate directory
+            else:
+                plt.savefig(str(_RESULT_DIR / f"developmentResults/combined_confusion_matrix_{name}.svg"), dpi=300, bbox_inches="tight")#dev results go in separate directory
         plt.close()
 
 def printCrossValidationPerformance(name:str, data) -> None:
