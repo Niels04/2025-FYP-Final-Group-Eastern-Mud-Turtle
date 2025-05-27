@@ -1,9 +1,11 @@
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 from pathlib import Path
 
 #for energy consumption measurement
-from codecarbon import track_emissions
+# from codecarbon import track_emissions
 
 from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
@@ -218,11 +220,12 @@ def runClassifier(classifier, methodName:str, threshold:float, xTrain:pd.DataFra
     testImgIDs = xTest["img_id"]#save img_id for result
     xTest = xTest.drop("img_id", axis=1)#drop img_id for prediction
     yProbs = classifier.predict_proba(xTest)[:, 1]#obtain column with melanoma prediction for test data
-
+    yLabels = [1 if y >= 0.5 else 0 for y in yProbs]
     #create result dataframe to store img_id and prediction (+ true label if available)
     result = pd.DataFrame({
     'img_id': testImgIDs,
-    'melanoma_prediction': yProbs
+    'melanoma_prediction': yProbs,
+    'melanoma_prediction_label': yLabels
     })
 
     if yTest is not None:
@@ -437,7 +440,7 @@ def split_data(X:pd.DataFrame, y:pd.DataFrame, groupName:str):
 #      For the report we could use the output to conduct a statistical test
 #      whether one method is better than the other at some confidence level.
 
-@track_emissions(country_iso_code="DNK")
+# @track_emissions(country_iso_code="DNK")
 def main():
     featureFile = str(_PROJ_DIR / "data/features.csv")
     df=read(featureFile)
@@ -468,23 +471,22 @@ def main():
         ('lr',clf4)
         ], voting='soft')#voting="hard" produces an error in AUC calculation, so don't use it for now
     
-    for _ in range(1000):
-        eval = Evaluator()
-        eval.evalClassifier(clf1, "RandomForest", xTrain, yTrain, patientGroup, threshold=0.3) # Threshold on 0.3 and maxdepth 5 improves the everything
-        eval.evalClassifier(clf2, "DecisionTree", xTrain, yTrain, patientGroup, threshold=0.5) # It doesn't improve it. It just makes it overfit or underfit
-        #eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5) #NO use of modifying the threshold  
-        eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.4)
-        eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveCurveROC=True, saveConfusionMatrix=True)
-        print(f"Logistic Regression took {clf4.n_iter_} iterations to converge.")
-            
-        xTrainStripped = xTrain[["fA_score", "fC_score", "fBV_score", "fS_score"]]#only use promising features
-        eval.evalClassifier(clf4, "LogisticRegression_Stripped", xTrainStripped, yTrain, patientGroup, threshold=0.5, saveCurveROC=True, saveConfusionMatrix=True)
-        makeDecisionBoundary("fBV_score", "fC_score", clf4, "Logistic Regression", xTrain, yTrain, threshold=0.5)
+    eval = Evaluator()
+    eval.evalClassifier(clf1, "RandomForest", xTrain, yTrain, patientGroup, threshold=0.3) # Threshold on 0.3 and maxdepth 5 improves the everything
+    eval.evalClassifier(clf2, "DecisionTree", xTrain, yTrain, patientGroup, threshold=0.5) # It doesn't improve it. It just makes it overfit or underfit
+    #eval.evalClassifier(clf3, "KNN", xTrain, yTrain, patientGroup, threshold=0.5) #NO use of modifying the threshold  
+    eval.evalClassifier(voting_clf, "Voting", xTrain, yTrain, patientGroup, threshold=0.4)
+    eval.evalClassifier(clf4, "Logistic Regression", xTrain, yTrain, patientGroup, threshold=0.5, saveCurveROC=True, saveConfusionMatrix=True)
+    print(f"Logistic Regression took {clf4.n_iter_} iterations to converge.")
+        
+    xTrainStripped = xTrain[["fA_score", "fC_score", "fBV_score", "fS_score"]]#only use promising features
+    eval.evalClassifier(clf4, "LogisticRegression_Stripped", xTrainStripped, yTrain, patientGroup, threshold=0.5, saveCurveROC=True, saveConfusionMatrix=True)
+    makeDecisionBoundary("fBV_score", "fC_score", clf4, "Logistic Regression", xTrain, yTrain, threshold=0.5)
 
-        eval.printPerformances()
-        eval.makeBoxplot("AUC")
-        eval.makeBoxplot("recall")
-        eval.makeBoxplot("precision")
+    eval.printPerformances()
+    eval.makeBoxplot("AUC")
+    eval.makeBoxplot("recall")
+    eval.makeBoxplot("precision")
 
 
 if __name__ == "__main__":
