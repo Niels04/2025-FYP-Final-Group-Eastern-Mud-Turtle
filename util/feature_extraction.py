@@ -55,21 +55,20 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     :param img_dir: The directory of the lesion images to be processed.
     :param mask_dir: The directory of the mask images, defaulted to None.
     :param metadata_dir: The directory of the metadata csv file containing the true melanoma label for the images,
-                         with the file name under the column 'img_id', and the true label under the column 'diagnostic'.
-                         Default is None, in which case no metadata file will be read and the resulting csv will not
-                         contain the 'true_melanoma_label' column.
+    with the file name under the column 'img_id', and the true label under the column 'diagnostic'.
+    Default is None, in which case no metadata file will be read and the resulting csv will not
+    contain the 'true_melanoma_label' column.
     :param features_dir: The directory in which to save the resulting data frame as a csv file.
-                         Default is None, in which case the data frame will not be saved, but simply returned. 
+    Default is None, in which case the data frame will not be saved, but simply returned. 
     :param base_model: Boolean value to indicate if only the base features will be extracted, defaulted to True.
     :param formula_features: Boolean value to indicate if the features needed to run the formula-based prediction will
-                              be extracted, defaulted to False. If set to \"only\", the program will extract EXCLUSIVELY
-                              features needed for the formula classifier to run, ignoring other parameters.
-                              A metadata file is necessary to run the formula feature extraction. Do not include them if
-                              no metadata.csv file is available.
+    be extracted, defaulted to False. If set to \"only\", the program will extract EXCLUSIVELY
+    features needed for the formula classifier to run, ignoring other parameters.
+    A metadata file is necessary to run the formula feature extraction. Do not include them if
+    no metadata.csv file is available.
 
     :return: Pandas data frame with name of the file, patient and lesion id, value for each extracted feature, 
-             for all images in the given directories.
-             
+    for all images in the given directories.
     """
 
     # load up the images and relative masks
