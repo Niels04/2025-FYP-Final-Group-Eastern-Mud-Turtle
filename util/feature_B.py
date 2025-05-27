@@ -171,9 +171,6 @@ def sample_along_line_until_border(image, mask, center, angle_rad, step=1.0):
             break#reached the outside of the mask
 
         sampled_values.append(px)
-        x = int(np.floor(x))
-        y = int(np.floor(y))
-        mask[x, y] = 0
 
     return np.array(sampled_values)
 
