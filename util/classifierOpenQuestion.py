@@ -3,7 +3,8 @@ import pandas as pd
 from sklearn.metrics import classification_report, precision_score, recall_score, roc_auc_score, roc_curve, confusion_matrix
 from sklearn.utils import resample
 
-from classifier import makeConfusionMatrix, printCrossValidationPerformance
+from util.classifier import makeConfusionMatrix, printCrossValidationPerformance#use this for the final submit
+#from classifier import makeConfusionMatrix, printCrossValidationPerformance#this is only for running this file on its own
 
 class Formula():
     """Class to implement the classifier based on a set formula.
@@ -133,6 +134,10 @@ class Formula():
         print(f"Performance for cross validation for method Formula")
         printCrossValidationPerformance("precision", PREs)
         printCrossValidationPerformance("Recall", RECs)
+        
+        #do one final predict run with all the test data to get a concrete confusion matrix
+        yPred = self.predict(x)#get predicted labels from model
+        makeConfusionMatrix("Formula", y, yPred, dataType="test")#make confusion matrix showing raw performance on test data
     
     def runFormulaClassifier(self, x: pd.DataFrame, y: pd.DataFrame = None) -> pd.DataFrame:
         """Given required data, perform a single run of the formula classifier\n

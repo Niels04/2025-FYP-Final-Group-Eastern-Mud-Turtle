@@ -106,7 +106,10 @@ def makeConfusionMatrix(name:str, yLabels: pd.DataFrame, yPredictions: pd.DataFr
         #set the labels for axes
         axes.set_xlabel("Predicted Labels")
         axes.set_ylabel("True Labels")
-        axes.set_title(f"Confusion Matrix for \"{name}\" on {dataType} data", fontweight='bold', fontsize=16)
+        if combined == 1:#confusion matrix is the result of only 1 run
+            axes.set_title(f"Confusion Matrix for \"{name}\" on {dataType} data", fontweight='bold', fontsize=16)
+        else:#confusion matrix is the averaged result of many runs(straps/shuffles)
+            axes.set_title(f"Combined Confusion Matrix for \"{name}\" on {dataType} data ({combined} runs)", fontweight='bold', fontsize=16)
 
         classes = ["Non Melanoma", "Melanoma"]
         axes.set_xticks(np.arange(len(classes)) + 0.5)
@@ -200,6 +203,11 @@ def finalCrossValidateClassifier(classifier, methodName:str, threshold:float, xT
     printCrossValidationPerformance("AUC", AUCs)
     printCrossValidationPerformance("Precision", PREs)
     printCrossValidationPerformance("Recall", RECs)
+    
+    #do one final predict run with all the test data to get a concrete confusion matrix
+    yProbs = classifier.predict_proba(xTest)[:, 1]#get predicted probabilities from model
+    yPred = (yProbs >= threshold).astype(int)#turn prediction probabilities into binary classifications using the threshold
+    makeConfusionMatrix(methodName, yTest, yPred, dataType="test")#make confusion matrix showing raw performance on test data
 
 
 def runClassifier(classifier, methodName:str, threshold:float, xTrain:pd.DataFrame, yTrain:pd.DataFrame, xTest:pd.DataFrame, yTest:pd.DataFrame = None) -> pd.DataFrame:

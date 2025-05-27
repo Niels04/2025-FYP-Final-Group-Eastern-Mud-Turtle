@@ -6,24 +6,24 @@ from pathlib import Path
 # from codecarbon import track_emissions
 
 #_________When importing from main_baseline.py the imports have to be changed like this____________
-# from util.img_util import ImageDataLoader as IDL
-# from util.inpaint_util import removeHair as rH
-# from util.feature_A import fA_extractor
-# from util.feature_B import fB_extractor
-# from util.feature_C import fC_extractor
-# from util.feature_BV import fBV_extractor
-# from util.feature_cheese import fCHEESE_extractor as fCH_extractor
-# from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
+from util.img_util import ImageDataLoader as IDL
+from util.inpaint_util import removeHair as rH
+from util.feature_A import fA_extractor
+from util.feature_B import fB_extractor
+from util.feature_C import fC_extractor
+from util.feature_BV import fBV_extractor
+from util.feature_cheese import fCHEESE_extractor as fCH_extractor
+from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 
-from img_util import ImageDataLoader as IDL
-from inpaint_util import removeHair as rH
-from feature_A import fA_extractor, fA_formula
-from feature_B import fB_extractor, fB_formula
-from feature_C import fC_extractor, fC_formula
-from feature_D import fD_formula
-from feature_BV import fBV_extractor
-from feature_cheese import fCHEESE_extractor as fCH_extractor
-from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
+# from img_util import ImageDataLoader as IDL
+# from inpaint_util import removeHair as rH
+# from feature_A import fA_extractor, fA_formula
+# from feature_B import fB_extractor, fB_formula
+# from feature_C import fC_extractor, fC_formula
+# from feature_D import fD_formula
+# from feature_BV import fBV_extractor
+# from feature_cheese import fCHEESE_extractor as fCH_extractor
+# from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data" #obtain data directory
 
