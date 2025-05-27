@@ -6,24 +6,25 @@ from pathlib import Path
 # from codecarbon import track_emissions
 
 #_________When importing from main_baseline.py the imports have to be changed like this____________
-# from util.img_util import ImageDataLoader as IDL
-# from util.inpaint_util import removeHair as rH
-# from util.feature_A import fA_extractor
-# from util.feature_B import fB_extractor
-# from util.feature_C import fC_extractor
-# from util.feature_BV import fBV_extractor
-# from util.feature_cheese import fCHEESE_extractor as fCH_extractor
-# from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
+from util.img_util import ImageDataLoader as IDL
+from util.inpaint_util import removeHair as rH
+from util.feature_A import fA_extractor, fA_formula
+from util.feature_B import fB_extractor, fB_formula
+from util.feature_C import fC_extractor, fC_formula
+from util.feature_D import fD_formula
+from util.feature_BV import fBV_extractor
+from util.feature_cheese import fCHEESE_extractor as fCH_extractor
+from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 
-from img_util import ImageDataLoader as IDL
-from inpaint_util import removeHair as rH
-from feature_A import fA_extractor, fA_formula
-from feature_B import fB_extractor, fB_formula
-from feature_C import fC_extractor, fC_formula
-from feature_D import fD_formula
-from feature_BV import fBV_extractor
-from feature_cheese import fCHEESE_extractor as fCH_extractor
-from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
+# from img_util import ImageDataLoader as IDL
+# from img_util import rate_hair as rH
+# from feature_A import fA_extractor, fA_formula
+# from feature_B import fB_extractor, fB_formula
+# from feature_C import fC_extractor, fC_formula
+# from feature_D import fD_formula
+# from feature_BV import fBV_extractor
+# from feature_cheese import fCHEESE_extractor as fCH_extractor
+# from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data" #obtain data directory
 
@@ -104,7 +105,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
             A_val = fA_formula(mask) #also takes a threshold defaultly set to 0.2
             B_val = fB_formula(img_rgb, mask)
             C_val = fC_formula(img_rgb, mask)
-            D_val = fD_formula(name, md, fBV_extractor(img_rgb, mask), fCH_extractor(mask))
+            D_val = fD_formula(name, md, fBV_extractor(img_rgb, mask))
 
             # create the new column for the final csv file
             datapoint = [name, patient_ID, lesion_ID, pat_les_ID, A_val, B_val, C_val, D_val]
@@ -114,7 +115,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
             fA_score, w = fA_extractor(mask)                   # asymmetry - roundness of image
             fB_score = fB_extractor(mask)                      # border irregularity - compactness of image
             fC_score = fC_extractor(img_rgb, mask)             # color - amount of different colors in image
-            hair_label = rH(img_rgb)                           # hair label (0 - 1 - 2 based on hair amount)
+            _, hair_label, _ = rH(img_rgb)                           # hair label (0 - 1 - 2 based on hair amount)
 
             if not base_model:
                 fBV_score = fBV_extractor(img_rgb, mask)       # blue veil - amount of blue-ish pixels in lesion
@@ -124,12 +125,13 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
             if formula_features:
                 A_val = fA_formula(mask)
                 B_val = fB_formula(img_rgb, mask)
-                C_val = fC_formula(img_rgb, mask)
+                C_val = fC_score
+                
 
                 if not base_model:
-                    D_val = fD_formula(name, md, fBV_score, fCHEESE_score)
+                    D_val = fD_formula(name, md, fBV_score)
                 else:
-                    D_val = fD_formula(name, md, fBV_extractor(img_rgb, mask), fCH_extractor(mask))
+                    D_val = fD_formula(name, md, fBV_extractor(img_rgb, mask))
 
 
             # create the new column for the final csv file
@@ -196,4 +198,4 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     return cd
 
 if __name__ == "__main__":
-    extract(img_dir, mask_dir, metadata_dir, features_dir, base_model= False, function_features= True)
+    extract(img_dir, mask_dir, metadata_dir, features_dir, base_model= False, formula_features= True)

@@ -8,7 +8,7 @@ from sklearn.cluster import KMeans
 from pathlib import Path
 from sklearn.metrics import accuracy_score
 from feature_cheese import fCHEESE_extractor as fCH_extractor
-from img_util import readImageFile
+from img_util import readImageFile, rate_hair
 from feature_A import fA_formula
 import feature_B
 from feature_B import fB_formula
@@ -236,7 +236,7 @@ predicted_labels = np.array([0 if r < 0.020 else 1 if r < 0.118 else 2 for r in 
 print(f"Accuracy of rate_hair() on test data (annotations from group C mandatory assigment): {accuracy_score(true_labels, predicted_labels):.4f}")
 #-------------------------------------------------------
 
-# IMAGE 4: Visualization of Feature B for Open Question
+# PLOT 4: Visualization of Feature B for Open Question
 #-------------------------------------------------------
 
 def draw_sector_overlay(image, center, nSectors, line_color='lightgreen'):
@@ -387,7 +387,6 @@ for img in imgs.keys():
     # get the name of the corresponding mask
     name, ext = os.path.splitext(img)
     mask_name = f"{name}_mask{ext}"
-
     # get the full path of the mask
     mask_path = os.path.join(mask_dir, mask_name)
 
@@ -395,16 +394,11 @@ for img in imgs.keys():
     img_rgb, img_gray = readImageFile(img_path)
     mask_gs = readImageFile(mask_path, is_mask= True)
     mask = (mask_gs > 127).astype(np.uint8) # mask as binary
-
-    # binary value to indicate if it is melanoma or not
-    diagnosis = md[md['img_id'] == img]['diagnostic'].values[0]
-    true_label = 1 if diagnosis == 'MEL' else 0
-
     # extract features
     A_val = fA_formula(mask)
     B_val = fB_formula(img_rgb, mask)
     C_val = fC_formula(img_rgb, mask)
-
+    
     # append predictions
     A_preds[i] = A_val
     B_preds[i] = B_val
@@ -480,4 +474,44 @@ for i, row in enumerate(df.index):
 plt.tight_layout()
 plt.savefig(str(_PLT_DIR / "formula_table.pdf"), dpi=300, bbox_inches='tight')
 print(f"Formula features Table saved as [formula_table.pdf] in the /result/otherPlots folder.")
+#-------------------------------------------------------
+
+# PLOT 6: GOOD EXAMPLE OF rate_hair() 
+#-------------------------------------------------------
+img_rgb, _ = readImageFile(str(_IMG_DIR / "PAT_1483_1678_538.png"))
+
+ratio, label, mask = rate_hair(img_rgb)
+fig = plt.figure(figsize= (10, 5))
+fig1 = fig.add_subplot(1, 2, 1)
+fig1.set_axis_off()
+fig1.set_title(f"PAT_1483_1678_538.png")
+fig1.imshow(img_rgb)
+
+fig2 = fig.add_subplot(1, 2, 2)
+fig2.set_axis_off()
+fig2.set_title(f"Hair mask - Predicted label: {label}")
+fig2.imshow(mask, cmap= 'gray')
+fig.savefig(str(_PLT_DIR / "good_hair.pdf"), dpi=300, bbox_inches='tight')
+plt.close()
+print("Plot saved as [good_hair.pdf] in the result/otherPlots folder.")
+#-------------------------------------------------------
+
+# PLOT 7: BAD EXAMPLE OF rate_hair() 
+#-------------------------------------------------------
+img_rgb, _ = readImageFile(str(_IMG_DIR / "PAT_115_1138_970.png"))
+
+ratio, label, mask = rate_hair(img_rgb)
+fig = plt.figure(figsize= (10, 5))
+fig1 = fig.add_subplot(1, 2, 1)
+fig1.set_axis_off()
+fig1.set_title(f"PAT_115_1138_970.png")
+fig1.imshow(img_rgb)
+
+fig2 = fig.add_subplot(1, 2, 2)
+fig2.set_axis_off()
+fig2.set_title(f"Hair mask - Predicted label: {label}")
+fig2.imshow(mask, cmap= 'gray')
+fig.savefig(str(_PLT_DIR / "bad_hair.pdf"), dpi=300, bbox_inches='tight')
+plt.close()
+print("Plot saved as [bad_hair.pdf] in the result/otherPlots folder.")
 #-------------------------------------------------------

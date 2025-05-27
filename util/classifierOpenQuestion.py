@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.metrics import classification_report, precision_score, recall_score, roc_auc_score, roc_curve, confusion_matrix
 from sklearn.utils import resample
 
-from classifier import makeConfusionMatrix, printCrossValidationPerformance
+from util.classifier import makeConfusionMatrix, printCrossValidationPerformance
 
 class Formula():
     """Class to implement the classifier based on a set formula.
@@ -59,9 +59,6 @@ class Formula():
         obtain said predictions.
         
         """
-        if not self.preds:
-            raise Exception("Function called when no predictions have been made.")
-        
         return self.preds   
      
     def precision(self, true_labels):
@@ -74,9 +71,6 @@ class Formula():
         :return: The precision score.
         
         """
-        if not self.preds:
-            raise Exception("Function called when no predictions have been made.")
-        
         return precision_score(true_labels, self.preds)
     
     def recall(self, true_labels):
@@ -89,9 +83,6 @@ class Formula():
         :return: The recall score.
         
         """
-        if not self.preds:
-            raise Exception("Function called when no predictions have been made.")
-        
         return recall_score(true_labels, self.preds)
     
     def finalCrossValidate(self, x: pd.DataFrame, y: pd.DataFrame, nStraps = 20) -> None:

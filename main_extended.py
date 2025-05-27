@@ -19,7 +19,7 @@ _RESULT_DIR = _PROJ_DIR / "result"#obtain results directory
 
 def main(csvPath:str, savePath:str, testImgDir:str, testMaskDir:str, testMetadataPath:str) -> None:
     #obtain training data from our extracted features csv
-    datasetDf = pd.read_csv(csvPath).drop(axis=1, labels=["patient_id", "lesion_id"])#drop unnecessary columns
+    datasetDf = pd.read_csv(csvPath).drop(axis=1, labels=["patient_id", "lesion_id", "hair_label"])#drop unnecessary columns
     datasetY = datasetDf['true_melanoma_label']#obtain melanoma binary label-column as y-data
     datasetX = datasetDf.drop("true_melanoma_label", axis=1)#drop melanoma label -> obtain X-data
     xTrain, yTrain, xTest, yTest = split_data(datasetX, datasetY, "pat_les_ID")#split grouping by lesion

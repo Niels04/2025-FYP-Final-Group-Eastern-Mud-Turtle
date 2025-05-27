@@ -1,5 +1,5 @@
-import os
-os.environ["OMP_NUM_THREADS"] = "1"
+# import os
+# os.environ["OMP_NUM_THREADS"] = "1"
 
 import cv2
 import numpy as np
@@ -49,7 +49,6 @@ def fC_extractor(img, mask, n= 6, threshold = 30):
         return com_col_list
     
     def get_multicolor_rate(im, mask, n):
-
         # small tweak to ensure same image and mask shape
         target_shape = (mask.shape[0] // 4, mask.shape[1] // 4)
         im_rsz = cv2.resize(im, (target_shape[1], target_shape[0]))
@@ -66,8 +65,8 @@ def fC_extractor(img, mask, n= 6, threshold = 30):
                     col_list.append(im2[i][j] * 255) # instead of 256
         if len(col_list) == 0:
             return ""
-        
-        cluster = KMeans(n_clusters=n, n_init=10).fit(col_list)
+        cluster = KMeans(n_clusters=n, n_init=10)
+        cluster = cluster.fit(col_list)
         com_col_list = get_com_col(cluster, cluster.cluster_centers_)
         return com_col_list
     
@@ -100,5 +99,5 @@ def fC_extractor(img, mask, n= 6, threshold = 30):
 #     raise FileNotFoundError(f"Mask not found: {maskpath}")
 
 def fC_formula(img_rgb, mask):
-    colors = fC_extractor(img_rgb, mask, n=8)
-    return colors
+    return fC_extractor(img_rgb, mask, n= 6, threshold= 30)
+    
