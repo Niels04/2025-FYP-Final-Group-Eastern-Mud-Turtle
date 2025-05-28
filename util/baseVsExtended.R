@@ -1,5 +1,25 @@
 library(tseries)
 library(ggplot2)
+library(rprojroot)
+
+# Set working directory to script location
+set_script_wd <- function() {
+  if (!interactive()) {
+    # If run via Rscript or source()
+    this_file <- normalizePath(sys.frame(1)$ofile)
+  } else if (requireNamespace("rstudioapi", quietly = TRUE) &&
+             rstudioapi::isAvailable()) {
+    # If running interactively in RStudio
+    this_file <- rstudioapi::getSourceEditorContext()$path
+  } else {
+    stop("Cannot determine script path. Please set working directory manually.")
+  }
+  
+  setwd(dirname(this_file))
+  message("Working directory set to: ", getwd())
+}
+
+set_script_wd()
 
 #hypothesis testing for method comparison
 
@@ -24,12 +44,21 @@ plot_qq <- function(dataVec, title) {
   qqline(dataVec, col = "red")
 }
 
+output_path <- "../result/otherPlots/qqplot_recall.svg"
+# Ensure directory exists
+dir.create(dirname(output_path), showWarnings = FALSE, recursive = TRUE)
+# Open SVG device
+svg(filename = output_path, width = 8, height = 4)
+# Tight layout: remove margins
+par(mar = c(2, 2, 2, 2))   # Bottom, left, top, right
+par(oma = c(0, 0, 0, 0))   # Outer margins
+
 #make QQ-Plots
 par(mfrow = c(1, 2))# Side-by-side plots
 plot_qq(base, "QQ-Plot: Base Model Recall")
 plot_qq(extended, "QQ-Plot: Extended Model Recall")
 par(mfrow = c(1, 1))#Reset layout
-
+dev.off()
 #by visual inspection of the QQ-Plots and the high p-values for the Jarque-Bera test,
 #we assume normality of the data
 
@@ -45,3 +74,4 @@ t.test(extended, base, var.equal = TRUE, alternative="greater")
 
 #Conclusion: p-value = 0.0007491 and thus we conclude that extended performs better
 #at the 99.9% confidence level
+getwd()
