@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import cv2
-import os
+import os 
 from sklearn.cluster import KMeans
 from pathlib import Path
 from sklearn.metrics import accuracy_score
