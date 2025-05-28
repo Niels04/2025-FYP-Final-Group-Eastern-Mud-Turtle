@@ -1,5 +1,3 @@
-from codecarbon import track_emissions
-from PIL import Image
 import numpy as np 
 from math import sqrt, floor, ceil, nan, pi
 from skimage.transform import rotate
