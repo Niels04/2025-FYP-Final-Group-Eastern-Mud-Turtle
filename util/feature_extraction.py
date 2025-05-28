@@ -33,7 +33,7 @@ _DATA_DIR = Path(__file__).resolve().parent.parent / "data" #obtain data directo
 img_dir = str(_DATA_DIR / "lesion_imgs/")
 mask_dir = str(_DATA_DIR / "lesion_masks/")
 metadata_dir = str(_DATA_DIR / "metadata.csv")
-features_dir = str(_DATA_DIR / "features.csv")
+features_dir = str(_DATA_DIR / "formula_test.csv")
 
 def normalizeMinMax(column:pd.Series) -> pd.Series:
     #min and max from the column
@@ -109,7 +109,7 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
 
             # create the new column for the final csv file
             datapoint = [name, patient_ID, lesion_ID, pat_les_ID, A_val, B_val, C_val, D_val]
-        
+
         # extract the features with the proper functions
         else:
             fA_score, w = fA_extractor(mask)                   # asymmetry - roundness of image
@@ -165,6 +165,9 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     if formula_features == 'only':
 
         col_names = ['img_id', 'patient_id', 'lesion_id', 'pat_les_ID', 'A_val', 'B_val', 'C_val', 'D_val']
+
+        if metadata_dir:
+            col_names.append('true_melanoma_label')
 
         cd.columns = col_names
 
