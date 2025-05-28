@@ -164,6 +164,8 @@ def printCrossValidationPerformance(name:str, data) -> None:
     print(f"\tMean: {mean:.4f}")
     print(f"\tStd Dev: {std:.4f}")
     print(f"\t95% CI: [{ci_lower:.4f}, {ci_upper:.4f}]")
+    print("Raw data for hypothesis testing:")
+    print(data)
 
 def finalCrossValidateClassifier(classifier, methodName:str, threshold:float, xTest:pd.DataFrame, yTest:pd.DataFrame, nStraps = 20) -> None:
     """Given a classifier, threshold and held-out test dataset, performs a cross validation via bootstrapping\n
