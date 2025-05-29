@@ -6,6 +6,7 @@ import pandas as pd
 
 """This code is only intended to run with the original dataset. 
 The main focus is to track emissions."""
+
 _PROJ_DIR = Path(__file__).resolve().parent   # obtain project directory
 _DATA_DIR = _PROJ_DIR / "data"                # obtain data directory
 _RESULT_DIR = _PROJ_DIR / "result"            # obtain results directory

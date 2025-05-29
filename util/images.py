@@ -31,7 +31,8 @@ Helper python script that saves the images related
 to plotting image-mask pairs used in the report.
 
 This includes:
-Figure 1, Figure 2, Figure 3 (temp)
+Figure 1, Figure 2, Figure 3, Figure 5, 
+Figure 6, Figure 13, Figure 19, Figure 20
 """
 
 # PLOT 1: BLACK MASK

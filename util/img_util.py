@@ -200,6 +200,10 @@ class ImageDataLoader:
         self.img_list = []
         self.mask_list = []
 
+        # set up dict to keep track of image-mask pairs already encountered 
+        # (necessary if images and masks are in same folder)
+        registry = {}
+
         # set up counter to keep track of the amount of name inconsistencies
         self.lost = 0
         
@@ -207,8 +211,8 @@ class ImageDataLoader:
         for f in os.listdir(mask_directory):
 
             # if the file is in a valid format
-            if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
-                
+            if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')) and f not in registry:                
+
                 # different directories or mask file
                 if mask_directory != img_directory or '_mask' in f:
 
@@ -217,6 +221,9 @@ class ImageDataLoader:
 
                     # get the name of the corresponding image
                     img_name = f.replace('_mask', '')
+
+                    # store image name in dict
+                    registry.setdefault(img_name, True)
 
                     # get the full path of the image
                     img_path = os.path.join(img_directory, img_name)
@@ -230,6 +237,9 @@ class ImageDataLoader:
                     # get the name of the corresponding mask
                     name, ext = os.path.splitext(f)
                     mask_name = f"{name}_mask{ext}"
+
+                    # store mask name in dict
+                    registry.setdefault(mask_name, True)
 
                     # get the full path of the mask
                     mask_path = os.path.join(mask_directory, mask_name)

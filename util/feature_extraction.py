@@ -16,6 +16,9 @@ from util.feature_BV import fBV_extractor
 from util.feature_cheese import fCHEESE_extractor as fCH_extractor
 from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 
+
+# Use these imports if running extract locally
+
 # from img_util import ImageDataLoader as IDL
 # from img_util import rate_hair as rH
 # from feature_A import fA_extractor, fA_formula
@@ -33,7 +36,7 @@ _DATA_DIR = Path(__file__).resolve().parent.parent / "data" #obtain data directo
 img_dir = str(_DATA_DIR / "lesion_imgs/")
 mask_dir = str(_DATA_DIR / "lesion_masks/")
 metadata_dir = str(_DATA_DIR / "metadata.csv")
-features_dir = str(_DATA_DIR / "formula_test.csv")
+features_dir = str(_DATA_DIR / "features.csv")
 
 def normalizeMinMax(column:pd.Series) -> pd.Series:
     #min and max from the column
@@ -201,4 +204,4 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     return cd
 
 if __name__ == "__main__":
-    extract(img_dir, mask_dir, metadata_dir, features_dir, base_model= False, formula_features= True)
+    extract(img_dir, None, metadata_dir, features_dir, base_model= False, formula_features= True)
