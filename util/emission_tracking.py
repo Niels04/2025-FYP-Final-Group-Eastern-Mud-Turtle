@@ -4,6 +4,8 @@ from pathlib import Path
 
 """Helper python script to track the energy consumption for one run of feature extraction for each
 of the models (baseline, extended, formula).
+If you are running this file from the util folder direclty, pleaase change the import statements in
+feature_extraction.py in order to properly run the code.
 """
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data" #obtain data directory
