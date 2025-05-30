@@ -64,6 +64,6 @@ if __name__ == "__main__":
     testMaskDir = None#path to mask directory for external test images (optional, if None, assumed to be equal to testImgDir)
     metadataPath = None#path to metadata.csv file for the external test images (optional, needed to evaluate performance based on true label)
 
-    trainCSV = str(_DATA_DIR / "features.csv")#path to trainingData csv (features extracted by our method)
+    trainCSV = str(_PROJ_DIR / "dataset.csv")#path to trainingData csv (features extracted by our method)
     resultCSV = str(_RESULT_DIR / "result_baseline.csv")#path where result csv will be saved
     main(trainCSV, resultCSV, testImgDir, testMaskDir, metadataPath)
