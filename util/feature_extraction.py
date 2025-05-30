@@ -29,7 +29,7 @@ from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 # from feature_cheese import fCHEESE_extractor as fCH_extractor
 # from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 
-_PROJ_DIR = Path(__file__).resolve().parent#obtain project directory
+_PROJ_DIR = Path(__file__).resolve().parent.parent#obtain project directory
 _DATA_DIR = _PROJ_DIR / "data"#obtain data directory
 
 # set up relevant directories
