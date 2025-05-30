@@ -29,14 +29,14 @@ from util.feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 # from feature_cheese import fCHEESE_extractor as fCH_extractor
 # from feature_snowflake import fSNOWFLAKE_extractor as fS_extractor
 
-
-_DATA_DIR = Path(__file__).resolve().parent.parent / "data" #obtain data directory
+_PROJ_DIR = Path(__file__).resolve().parent#obtain project directory
+_DATA_DIR = _PROJ_DIR / "data"#obtain data directory
 
 # set up relevant directories
 img_dir = str(_DATA_DIR / "lesion_imgs/")
 mask_dir = str(_DATA_DIR / "lesion_masks/")
 metadata_dir = str(_DATA_DIR / "metadata.csv")
-features_dir = str(_DATA_DIR / "features.csv")
+features_dir = str(_PROJ_DIR / "dataset.csv")
 
 def normalizeMinMax(column:pd.Series) -> pd.Series:
     #min and max from the column
