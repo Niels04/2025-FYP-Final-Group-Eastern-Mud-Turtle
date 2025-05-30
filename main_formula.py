@@ -36,6 +36,6 @@ def main(savePath:str, MetadataPath:str) -> None:
 
 
 if __name__ == "__main__":
-    metadataPath = str(_DATA_DIR / "features.csv") # path to metadata.csv file for the external test images (optional, needed to evaluate performance based on true label)
+    metadataPath = str(_PROJ_DIR / "dataset.csv") # path to metadata.csv file for the external test images (optional, needed to evaluate performance based on true label)
     resultCSV = str(_RESULT_DIR / "result_formula.csv") # path where result csv will be saved
     main(resultCSV, metadataPath)
