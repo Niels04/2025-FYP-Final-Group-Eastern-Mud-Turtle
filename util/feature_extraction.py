@@ -204,4 +204,4 @@ def extract(img_dir, mask_dir= None, metadata_dir= None, features_dir= None, bas
     return cd
 
 if __name__ == "__main__":
-    extract(img_dir, None, metadata_dir, features_dir, base_model= False, formula_features= True)
+    extract(img_dir, mask_dir, metadata_dir, features_dir, base_model= False, formula_features= True)
